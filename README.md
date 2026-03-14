@@ -196,7 +196,7 @@ See the [`examples/`](./examples/) directory for working scripts:
 
 ## OpenClaw Skill
 
-SparkUI works as an [OpenClaw](https://github.com/openclaw/openclaw) skill for direct agent integration. Install it as a skill to let your agent generate UIs from chat automatically.
+SparkUI includes an [OpenClaw](https://github.com/openclaw/openclaw) skill for direct agent integration. See [SKILL.md](./SKILL.md) for details.
 
 ## Contributing
 
