@@ -14,7 +14,7 @@ SparkUI lets AI agents generate interactive web UIs on demand. Instead of walls 
 - 🎯 **No app install** — just a URL that works in any browser
 - ⏱️ **Ephemeral** — pages auto-expire (default 1 hour)
 - 🔄 **Bidirectional** — user actions flow back to the agent via WebSocket
-- 🧩 **Composable** — 8 components you can mix and match
+- 🧩 **Composable** — 15 components you can mix and match
 - 📱 **Mobile-first** — designed for phones, works everywhere
 - 🔌 **MCP compatible** — works with Claude Desktop, Cursor, Windsurf
 - 🌙 **Dark theme** — easy on the eyes, polished look
