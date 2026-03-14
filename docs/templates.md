@@ -1,6 +1,6 @@
 # Templates
 
-SparkUI includes 5 built-in templates for common use cases. Each generates a complete, interactive HTML page with dark theme, responsive layout, and WebSocket connectivity.
+SparkUI includes 10 built-in templates for common use cases. Each generates a complete, interactive HTML page with dark theme, responsive layout, and WebSocket connectivity.
 
 Use templates via `POST /api/push` with a `template` name and `data` object.
 
@@ -249,6 +249,284 @@ interface WsTestData {
 - Test form that sends completion events
 - Real-time message log showing all WebSocket traffic
 - Useful for verifying WebSocket connectivity and event forwarding
+
+---
+
+## poll
+
+Real-time poll/voting with bar chart results, single or multi-select, anonymous or named voting, and auto-close support.
+
+### Data Schema
+
+```typescript
+interface PollData {
+  question: string;                   // The poll question
+  options: Array<string | { text: string; icon?: string }>;  // Choice options
+  multiSelect?: boolean;              // Allow multiple selections (default: false)
+  anonymous?: boolean;                // Anonymous voting (default: true)
+  showResults?: boolean;              // Show live results (default: true)
+  maxVotes?: number;                  // Auto-close after N votes
+  closesAt?: string;                  // ISO timestamp to auto-close
+  subtitle?: string;                  // Optional subtitle
+}
+```
+
+### Example
+
+```json
+{
+  "template": "poll",
+  "data": {
+    "question": "What framework do you prefer?",
+    "options": ["React", "Vue", "Svelte", "Angular"],
+    "multiSelect": false,
+    "showResults": true
+  },
+  "ttl": 7200
+}
+```
+
+### Features
+
+- Single or multi-select voting
+- Real-time bar chart results visualization
+- Anonymous or named voting
+- Auto-close after TTL, max votes, or timestamp
+- WebSocket real-time vote updates from other voters
+- Sends `completion` event with `{ action: 'vote', selections, voter, ... }`
+
+---
+
+## shopping-list
+
+Categorized, checkable shopping list with real-time sync, dynamic item adding, and collaborative sharing.
+
+### Data Schema
+
+```typescript
+interface ShoppingListData {
+  title?: string;                     // List title (default: "Shopping List")
+  items: Array<{
+    category?: string;                // Category name (e.g. "Produce", "Dairy")
+    name: string;                     // Item name
+    quantity?: string;                // Quantity (e.g. "2 lbs", "1 bag")
+    notes?: string;                   // Additional notes
+    checked?: boolean;                // Pre-checked state
+  }>;
+  allowAdd?: boolean;                 // Allow adding items (default: true)
+  collaborative?: boolean;            // Show live collaboration indicator
+}
+```
+
+### Example
+
+```json
+{
+  "template": "shopping-list",
+  "data": {
+    "title": "Weekly Groceries",
+    "items": [
+      { "category": "Produce", "name": "Avocados", "quantity": "3" },
+      { "category": "Dairy", "name": "Greek Yogurt", "quantity": "2" },
+      { "category": "Meat", "name": "Chicken Breast", "quantity": "1 lb" },
+      { "category": "Pantry", "name": "Olive Oil" }
+    ],
+    "collaborative": true
+  }
+}
+```
+
+### Features
+
+- Auto-grouped by category with icons (Produce 🥬, Dairy 🧀, Meat 🥩, etc.)
+- Checkable items with strike-through animation
+- Add items dynamically with category, quantity, and notes
+- Progress bar showing completion percentage
+- Copy share link for collaborative lists
+- WebSocket real-time sync for live collaboration
+- Sends `completion` event when all items are checked
+
+---
+
+## calendar
+
+Day and week calendar views with color-coded events, detail modals, navigation, and today highlighting.
+
+### Data Schema
+
+```typescript
+interface CalendarData {
+  title?: string;                     // Calendar title (default: "Calendar")
+  view?: 'day' | 'week';             // Initial view (default: "day")
+  date?: string;                      // Focus date (YYYY-MM-DD, default: today)
+  events: Array<{
+    title: string;                    // Event title
+    start: string;                    // ISO start time
+    end?: string;                     // ISO end time
+    category?: string;                // Category for color coding
+    color?: string;                   // Override color (hex)
+    location?: string;                // Event location
+    description?: string;             // Event description
+    allDay?: boolean;                 // All-day event
+  }>;
+  categories?: Record<string, string>; // { name: color } overrides
+}
+```
+
+### Example
+
+```json
+{
+  "template": "calendar",
+  "data": {
+    "title": "Today's Schedule",
+    "view": "day",
+    "events": [
+      { "title": "Team Standup", "start": "2026-03-14T09:00:00", "end": "2026-03-14T09:30:00", "category": "Meeting", "location": "Zoom" },
+      { "title": "Lunch", "start": "2026-03-14T12:00:00", "end": "2026-03-14T13:00:00", "category": "Personal" },
+      { "title": "Code Review", "start": "2026-03-14T14:00:00", "category": "Work" }
+    ]
+  }
+}
+```
+
+### Features
+
+- Day view with time slots and event cards
+- Week view with 7-day grid
+- Color-coded categories (Work 🔵, Personal 🟢, Health 🔴, Meeting 🟣, etc.)
+- Today highlight with green badge
+- Event detail modal on click/tap
+- Previous/Next/Today navigation
+- All-day event support
+- WebSocket updates for live event changes
+
+---
+
+## approval-flow
+
+Request approval workflow with Approve/Reject/Request Changes buttons, optional comments, confirmation dialogs, and agent callback.
+
+### Data Schema
+
+```typescript
+interface ApprovalFlowData {
+  title: string;                      // Request title
+  description?: string;               // Request description
+  requester?: string;                 // Who submitted the request
+  amount?: string;                    // Amount or impact (e.g. "$5,000", "High")
+  status?: string;                    // pending|approved|rejected|changes_requested (default: "pending")
+  details?: Array<{ label: string; value: string }>;  // Key-value detail rows
+  requireComment?: boolean;           // Require comment before action (default: false)
+  showRequestChanges?: boolean;       // Show "Request Changes" button (default: true)
+  urgency?: string;                   // low|medium|high|critical
+}
+```
+
+### Example
+
+```json
+{
+  "template": "approval-flow",
+  "data": {
+    "title": "Q2 Marketing Budget Increase",
+    "description": "Requesting additional budget for Q2 social media campaign.",
+    "requester": "Sarah Chen",
+    "amount": "$15,000",
+    "urgency": "medium",
+    "details": [
+      { "label": "Department", "value": "Marketing" },
+      { "label": "Timeline", "value": "Apr 1 - Jun 30" },
+      { "label": "ROI Estimate", "value": "3.2x" }
+    ],
+    "requireComment": false
+  }
+}
+```
+
+### Features
+
+- Status badge (pending/approved/rejected/changes requested)
+- Requester avatar and info
+- Amount/impact display
+- Key-value detail rows
+- Approve, Reject, and Request Changes buttons
+- Optional or required comment field
+- Confirmation dialog before submitting decision
+- Urgency indicator (low/medium/high/critical)
+- Sends `completion` event with `{ decision, comment, decidedAt }`
+
+---
+
+## comparison
+
+Side-by-side product/option comparison with feature matrix, pros/cons, best-value highlights, and selection.
+
+### Data Schema
+
+```typescript
+interface ComparisonData {
+  title?: string;                     // Comparison title
+  subtitle?: string;                  // Subtitle text
+  items: Array<{
+    name: string;                     // Item name
+    image?: string;                   // Emoji or image URL
+    price?: string;                   // Price display (e.g. "$29/mo")
+    rating?: number;                  // 1-5 star rating
+    recommended?: boolean;            // Highlight as recommended
+    badge?: string;                   // Custom badge text
+    pros?: string[];                  // List of pros
+    cons?: string[];                  // List of cons
+    features?: Record<string, string | boolean>;  // Feature values
+    link?: string;                    // External link
+  }>;                                 // 2-5 items
+  featureLabels?: string[];           // Feature names for matrix
+}
+```
+
+### Example
+
+```json
+{
+  "template": "comparison",
+  "data": {
+    "title": "Choose a Plan",
+    "items": [
+      {
+        "name": "Starter",
+        "price": "$9/mo",
+        "rating": 4,
+        "features": { "API Calls": "1,000/mo", "Storage": "5 GB", "Support": "Email" },
+        "pros": ["Affordable", "Easy setup"],
+        "cons": ["Limited API calls"]
+      },
+      {
+        "name": "Pro",
+        "price": "$29/mo",
+        "rating": 4.5,
+        "recommended": true,
+        "features": { "API Calls": "50,000/mo", "Storage": "100 GB", "Support": "Priority" },
+        "pros": ["Great value", "Priority support"],
+        "cons": ["No custom domain"]
+      }
+    ],
+    "featureLabels": ["API Calls", "Storage", "Support"]
+  }
+}
+```
+
+### Features
+
+- Card-based comparison (mobile-friendly stacking)
+- Feature matrix table (toggleable on desktop)
+- Star ratings with half-star support
+- Recommended/best-value highlighting with green border
+- Pros and cons lists per item
+- Custom badges
+- Selection buttons with confirmation
+- Supports 2-5 items
+- Boolean features shown as ✓/✗ checkmarks
+- Sends `completion` event with `{ selectedItem, selectedIndex }`
 
 ---
 

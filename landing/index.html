@@ -263,6 +263,36 @@ footer{
         <p>Multi-field form with star ratings, text inputs, selects, and real-time validation.</p>
         <button class="demo-btn" onclick="launchDemo('feedback-form',{fields:[{type:'rating',label:'Overall Experience',max:5},{type:'rating',label:'Ease of Use',max:5},{type:'text',label:'What did you like?',placeholder:'Tell us...'},{type:'select',label:'Would you recommend?',options:['Definitely','Probably','Not sure','No']}]})">Launch Demo →</button>
       </div>
+      <div class="demo-card fade-in">
+        <span class="demo-icon">📊</span>
+        <h3>Poll / Voting</h3>
+        <p>Real-time polls with bar chart results, single or multi-select, and auto-close support.</p>
+        <button class="demo-btn" onclick="launchDemo('poll',{question:'What framework do you prefer?',options:['React','Vue','Svelte','Angular','Solid'],multiSelect:false,showResults:true})">Launch Demo →</button>
+      </div>
+      <div class="demo-card fade-in">
+        <span class="demo-icon">🛒</span>
+        <h3>Shopping List</h3>
+        <p>Categorized, checkable shopping list with real-time sync and collaborative editing.</p>
+        <button class="demo-btn" onclick="launchDemo('shopping-list',{title:'Weekly Groceries',items:[{category:'Produce',name:'Avocados',quantity:'3'},{category:'Produce',name:'Spinach',quantity:'1 bag'},{category:'Dairy',name:'Greek Yogurt',quantity:'2'},{category:'Meat',name:'Chicken Breast',quantity:'1 lb'},{category:'Bakery',name:'Sourdough Bread',quantity:'1 loaf'},{category:'Pantry',name:'Olive Oil',quantity:'1 bottle'}]})">Launch Demo →</button>
+      </div>
+      <div class="demo-card fade-in">
+        <span class="demo-icon">📅</span>
+        <h3>Calendar</h3>
+        <p>Day and week views with color-coded events, detail modals, and today highlighting.</p>
+        <button class="demo-btn" onclick="launchDemo('calendar',{title:'My Schedule',view:'day',events:[{title:'Team Standup',start:new Date(new Date().setHours(9,0,0,0)).toISOString(),end:new Date(new Date().setHours(9,30,0,0)).toISOString(),category:'Meeting',location:'Zoom'},{title:'Lunch',start:new Date(new Date().setHours(12,0,0,0)).toISOString(),end:new Date(new Date().setHours(13,0,0,0)).toISOString(),category:'Personal'},{title:'Code Review',start:new Date(new Date().setHours(14,0,0,0)).toISOString(),end:new Date(new Date().setHours(15,0,0,0)).toISOString(),category:'Work'},{title:'Gym',start:new Date(new Date().setHours(17,0,0,0)).toISOString(),end:new Date(new Date().setHours(18,0,0,0)).toISOString(),category:'Health'}]})">Launch Demo →</button>
+      </div>
+      <div class="demo-card fade-in">
+        <span class="demo-icon">✅</span>
+        <h3>Approval Flow</h3>
+        <p>Request approval with approve/reject/changes buttons, comments, and confirmation dialogs.</p>
+        <button class="demo-btn" onclick="launchDemo('approval-flow',{title:'Q2 Marketing Budget Increase',description:'Requesting additional budget for the Q2 social media campaign based on strong Q1 performance.',requester:'Sarah Chen',amount:'$15,000',urgency:'medium',details:[{label:'Department',value:'Marketing'},{label:'Timeline',value:'Apr 1 - Jun 30'},{label:'ROI Estimate',value:'3.2x'}]})">Launch Demo →</button>
+      </div>
+      <div class="demo-card fade-in">
+        <span class="demo-icon">⚖️</span>
+        <h3>Comparison</h3>
+        <p>Side-by-side product comparison with feature matrix, pros/cons, and selection.</p>
+        <button class="demo-btn" onclick="launchDemo('comparison',{title:'Choose a Plan',items:[{name:'Starter',price:'$9/mo',rating:4,features:{'API Calls':'1,000/mo','Storage':'5 GB','Support':'Email'},pros:['Affordable','Easy setup'],cons:['Limited API calls']},{name:'Pro',price:'$29/mo',rating:4.5,recommended:true,features:{'API Calls':'50,000/mo','Storage':'100 GB','Support':'Priority'},pros:['Great value','Priority support'],cons:['No custom domain']},{name:'Enterprise',price:'$99/mo',rating:5,features:{'API Calls':'Unlimited','Storage':'1 TB','Support':'Dedicated'},pros:['Unlimited everything','SLA'],cons:['Higher cost']}],featureLabels:['API Calls','Storage','Support']})">Launch Demo →</button>
+      </div>
     </div>
   </div>
 </section>
