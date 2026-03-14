@@ -1,5 +1,5 @@
 {
-  "name": "sparkui",
+  "name": "@limeade-labs/sparkui",
   "version": "1.0.0",
   "description": "Ephemeral, purpose-built web UIs generated on demand from chat conversations",
   "main": "server.js",
@@ -18,7 +18,12 @@
     "README.md",
     "LICENSE",
     "CONTRIBUTING.md",
-    ".env.example"
+    ".env.example",
+    "docs/",
+    "SKILL.md",
+    "mcp-server/index.js",
+    "mcp-server/package.json",
+    "mcp-server/README.md"
   ],
   "engines": {
     "node": ">=18"

@@ -29,7 +29,7 @@ sparkui init
 Or use npx without installing:
 
 ```bash
-npx sparkui init
+npx @limeade-labs/sparkui init
 ```
 
 The `init` command creates a `.env` file with a randomly generated push token.
@@ -80,7 +80,7 @@ sparkui start
 Or with npx:
 
 ```bash
-npx sparkui start
+npx @limeade-labs/sparkui start
 ```
 
 ### Using npm (from source)
