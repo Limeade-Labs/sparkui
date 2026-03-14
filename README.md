@@ -67,6 +67,13 @@ Returns:
 
 ## Built-in Templates
 
+<p align="center">
+  <img src="screenshots/macro-tracker.png" width="200" alt="Macro Tracker" />
+  <img src="screenshots/checkout.png" width="200" alt="Checkout" />
+  <img src="screenshots/workout-timer.png" width="200" alt="Workout Timer" />
+  <img src="screenshots/feedback-form.png" width="200" alt="Feedback Form" />
+</p>
+
 | Template | Description |
 |----------|-------------|
 | `macro-tracker` | Daily nutrition/macro tracking with progress bars |
