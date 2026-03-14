@@ -10,6 +10,7 @@ const { WebSocketServer } = require('ws');
 const { PageStore } = require('./lib/store');
 const templates = require('./lib/templates');
 const components = require('./lib/components');
+const { AnalyticsStore } = require('./lib/analytics');
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -58,6 +59,7 @@ const OPENCLAW_HOOKS_TOKEN = process.env.OPENCLAW_HOOKS_TOKEN || null;
 const app = express();
 const server = http.createServer(app);
 const store = new PageStore();
+const analytics = new AnalyticsStore();
 
 // Middleware
 app.use(express.json({ limit: '2mb' }));
@@ -280,14 +282,38 @@ wss.on('connection', (ws, req) => {
         try { ws.send(JSON.stringify({ type: 'pong' })); } catch {}
         break;
 
+      case 'analytics_view':
+        // Client-side view tracking with fingerprint
+        analytics.recordView(msgPageId, msg.visitorId || null);
+        break;
+
+      case 'analytics_interaction':
+        // Client-side interaction tracking
+        analytics.recordInteraction(msgPageId, msg.data || {});
+        break;
+
+      case 'analytics_session':
+        // Client-side session/time-on-page tracking
+        analytics.recordSession(msgPageId, msg.data || {});
+        break;
+
+      case 'analytics_completion':
+        // Client-side completion tracking
+        analytics.recordCompletion(msgPageId, msg.data || {});
+        break;
+
       case 'event':
         console.log(`[ws] Event from page ${msgPageId}:`, JSON.stringify(msg.data).slice(0, 200));
+        // Also record as analytics interaction
+        analytics.recordInteraction(msgPageId, { type: 'event', element: '', data: msg.data });
         forwardToCallback(msgPageId, 'event', msg.data);
         forwardToOpenClaw(msgPageId, 'event', msg.data);
         break;
 
       case 'completion':
         console.log(`[ws] Completion from page ${msgPageId}:`, JSON.stringify(msg.data).slice(0, 200));
+        // Also record as analytics completion
+        analytics.recordCompletion(msgPageId, { type: 'completion', data: msg.data });
         forwardToCallback(msgPageId, 'completion', msg.data);
         forwardToOpenClaw(msgPageId, 'completion', msg.data);
         break;
@@ -370,6 +396,11 @@ app.get('/s/:id', (req, res) => {
     );
   }
   store.recordView(req.params.id);
+
+  // Record analytics view with visitor fingerprint from query or header
+  const visitorId = req.query._vid || req.headers['x-visitor-id'] || null;
+  analytics.recordView(req.params.id, visitorId);
+
   res.set('Content-Type', 'text/html').send(page.html);
 });
 
@@ -428,6 +459,14 @@ app.post('/api/push', requireAuth, (req, res) => {
       callbackToken: callbackToken || null,
       meta: { ...enrichedMeta, data: data || null },
       openclaw: openclaw || null,
+    });
+
+    // Initialize analytics for this page
+    const pageTtl = ttl || 3600;
+    analytics.init(id, {
+      template: template || 'raw',
+      created: new Date().toISOString(),
+      expires: new Date(Date.now() + pageTtl * 1000).toISOString(),
     });
 
     res.status(201).json({ id, url: `/s/${id}`, fullUrl: `${baseUrl}/s/${id}` });
@@ -562,12 +601,60 @@ app.post('/api/compose', requireAuth, (req, res) => {
       openclaw,
     });
 
+    // Initialize analytics for composed page
+    const composedTtl = ttl || 3600;
+    analytics.init(id, {
+      template: 'composed',
+      created: new Date().toISOString(),
+      expires: new Date(Date.now() + composedTtl * 1000).toISOString(),
+    });
+
     const baseUrl = process.env.SPARKUI_BASE_URL || `http://localhost:${PORT}`;
     res.status(201).json({ id, url: `/s/${id}`, fullUrl: `${baseUrl}/s/${id}` });
   } catch (err) {
     console.error('Compose error:', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── Analytics API ────────────────────────────────────────────────────────────
+
+// Summary analytics across all pages
+app.get('/api/analytics', requireAuth, (req, res) => {
+  res.json(analytics.getSummary());
+});
+
+// Detailed analytics for a specific page
+app.get('/api/analytics/:pageId', requireAuth, (req, res) => {
+  const data = analytics.getPage(req.params.pageId);
+  if (!data) {
+    return res.status(404).json({ error: 'No analytics found for this page' });
+  }
+  res.json(data);
+});
+
+// Analytics beacon endpoint (POST) — for client-side tracking without WS
+app.post('/api/analytics/beacon', express.json(), (req, res) => {
+  const { pageId, type, visitorId, data } = req.body;
+  if (!pageId) return res.status(400).json({ error: 'pageId required' });
+
+  switch (type) {
+    case 'view':
+      analytics.recordView(pageId, visitorId);
+      break;
+    case 'interaction':
+      analytics.recordInteraction(pageId, data || {});
+      break;
+    case 'completion':
+      analytics.recordCompletion(pageId, data || {});
+      break;
+    case 'session':
+      analytics.recordSession(pageId, data || {});
+      break;
+    default:
+      break;
+  }
+  res.json({ ok: true });
 });
 
 // ── Test Echo Endpoint ───────────────────────────────────────────────────────

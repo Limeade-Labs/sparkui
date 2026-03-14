@@ -22,6 +22,108 @@ function base({ title = 'SparkUI', body = '', id = '', refreshSeconds = 0, extra
 
   const wsScript = id ? `<script>${getClientScript(id)}</script>` : '';
 
+  // Analytics tracking script — injected on every page with an ID
+  const analyticsScript = id ? `<script>
+(function(){
+  var pageId = ${JSON.stringify(id)};
+
+  // Simple visitor fingerprint (UA + screen size hash, no cookies)
+  function fingerprint() {
+    var s = (navigator.userAgent || '') + screen.width + 'x' + screen.height + (screen.colorDepth || '');
+    var h = 0;
+    for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+    return 'v' + Math.abs(h).toString(36);
+  }
+
+  var vid = fingerprint();
+  var sessionStart = Date.now();
+  var interactionCount = 0;
+  var useWS = typeof window.sparkui !== 'undefined';
+
+  function send(type, data) {
+    if (useWS && window.sparkui && window.sparkui.connected) {
+      try {
+        window.sparkui.send('analytics_' + type, data);
+        return;
+      } catch(e) {}
+    }
+    // Fallback: beacon API
+    try {
+      var payload = JSON.stringify({ pageId: pageId, type: type, visitorId: vid, data: data });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/analytics/beacon', new Blob([payload], { type: 'application/json' }));
+      } else {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/analytics/beacon', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(payload);
+      }
+    } catch(e) {}
+  }
+
+  // Send view on load
+  setTimeout(function() {
+    useWS = typeof window.sparkui !== 'undefined' && window.sparkui.connected;
+    if (useWS && window.sparkui) {
+      try {
+        var ws = window.sparkui;
+        // Send view via WS with visitorId at top level
+        var raw = JSON.stringify({ type: 'analytics_view', pageId: pageId, visitorId: vid, timestamp: Date.now() });
+        // Access internal send — fallback to beacon
+        send('view', { visitorId: vid });
+      } catch(e) {
+        send('view', { visitorId: vid });
+      }
+    } else {
+      send('view', { visitorId: vid });
+    }
+  }, 500);
+
+  // Track interactions (clicks, submits, changes) inside .sparkui-container
+  document.addEventListener('click', function(e) {
+    var t = e.target;
+    if (!t.closest || !t.closest('.sparkui-container')) return;
+    var tag = t.tagName.toLowerCase();
+    if (tag === 'button' || tag === 'a' || t.type === 'submit' || t.role === 'button') {
+      interactionCount++;
+      send('interaction', { type: 'click', element: tag + (t.className ? '.' + t.className.split(' ')[0] : ''), data: { text: (t.textContent || '').slice(0, 50) } });
+    }
+  }, true);
+
+  document.addEventListener('submit', function(e) {
+    interactionCount++;
+    send('interaction', { type: 'submit', element: 'form', data: { id: e.target.id || '' } });
+    send('completion', { type: 'form_submit', data: { formId: e.target.id || '' } });
+  }, true);
+
+  document.addEventListener('change', function(e) {
+    var t = e.target;
+    if (!t.closest || !t.closest('.sparkui-container')) return;
+    var tag = t.tagName.toLowerCase();
+    if (t.type === 'checkbox' || t.type === 'radio' || tag === 'select') {
+      interactionCount++;
+      send('interaction', { type: 'change', element: tag + '[' + (t.type || '') + ']', data: { name: t.name || '' } });
+    }
+  }, true);
+
+  // Heartbeat every 30s for time tracking
+  var heartbeatTimer = setInterval(function() {
+    // Just keep session alive — actual duration sent on unload
+  }, 30000);
+
+  // Send session data on page unload
+  function endSession() {
+    var duration = Math.round((Date.now() - sessionStart) / 1000);
+    send('session', { visitorId: vid, duration: duration, interactions: interactionCount });
+  }
+
+  window.addEventListener('beforeunload', endSession);
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') endSession();
+  });
+})();
+</script>` : '';
+
   // Open Graph meta tags
   const ogTitle = og.title || title || 'SparkUI';
   const ogDescription = og.description || 'An ephemeral micro-app powered by SparkUI ⚡';
@@ -75,6 +177,7 @@ function base({ title = 'SparkUI', body = '', id = '', refreshSeconds = 0, extra
     ${body}
   </div>
   ${wsScript}
+  ${analyticsScript}
 </body>
 </html>`;
 }

@@ -160,6 +160,22 @@ server.tool(
   }
 );
 
+// Tool: sparkui_analytics
+server.tool(
+  'sparkui_analytics',
+  'Get analytics data for SparkUI pages. Returns views, interactions, completions, avg time on page, and completion rates. Without pageId returns summary across all pages.',
+  {
+    pageId: z.optional(z.string().describe('Specific page UUID to get analytics for. Omit for summary of all pages.')),
+  },
+  async ({ pageId }) => {
+    const path = pageId ? `/api/analytics/${pageId}` : '/api/analytics';
+    const data = await sparkuiRequest('GET', path);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
 // ── Start ────────────────────────────────────────────────────────────────────
 
 async function main() {
