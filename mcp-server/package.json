@@ -1,0 +1,15 @@
+{
+  "name": "@sparkui/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server exposing SparkUI as tools for Claude Desktop, Cursor, Windsurf, and other MCP clients",
+  "main": "index.js",
+  "bin": {
+    "sparkui-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  }
+}

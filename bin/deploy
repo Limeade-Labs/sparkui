@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+echo "🚀 Deploying SparkUI..."
+
+# Restart the service (adjust to your process manager)
+# systemctl --user restart sparkui
+# pm2 restart sparkui
+
+echo "✅ SparkUI restarted"
+
+# Quick health check
+sleep 1
+PORT="${SPARKUI_PORT:-3456}"
+STATUS=$(curl -s "http://localhost:${PORT}/" | jq -r '.status // "unknown"' 2>/dev/null)
+echo ""
+echo "Health check: $STATUS"
+
+# Check public URL (if configured)
+if [ -n "$SPARKUI_BASE_URL" ]; then
+  PUB_STATUS=$(curl -s "$SPARKUI_BASE_URL/" | jq -r '.status // "unknown"' 2>/dev/null)
+  echo "Public URL:   $PUB_STATUS"
+fi

@@ -1,0 +1,47 @@
+{
+  "name": "sparkui",
+  "version": "1.0.0",
+  "description": "Ephemeral, purpose-built web UIs generated on demand from chat conversations",
+  "main": "server.js",
+  "bin": {
+    "sparkui": "./bin/sparkui.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "templates/",
+    "server.js",
+    "README.md",
+    "LICENSE",
+    "CONTRIBUTING.md",
+    ".env.example"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "sparkui",
+    "ephemeral-ui",
+    "ai-agent",
+    "web-ui",
+    "mcp",
+    "websocket",
+    "templates"
+  ],
+  "homepage": "https://sparkui.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/limeade-labs/sparkui.git"
+  },
+  "author": "Limeade Labs",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+dist/
+coverage/
+mcp-server/node_modules/
+.vscode/
+.idea/
+SKILL.md
