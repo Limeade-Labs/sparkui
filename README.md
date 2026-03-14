@@ -209,6 +209,18 @@ SparkUI includes an [OpenClaw](https://github.com/openclaw/openclaw) skill for d
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
+## Documentation
+
+Full documentation is available in the [`docs/`](./docs/) directory:
+
+- **[Getting Started](./docs/getting-started.md)** — Install, configure, and push your first page
+- **[API Reference](./docs/api-reference.md)** — REST API and WebSocket protocol
+- **[Templates](./docs/templates.md)** — 5 built-in templates with schemas and examples
+- **[Components](./docs/components.md)** — 8 composable components for custom pages
+- **[MCP Setup](./docs/mcp-setup.md)** — Claude Desktop, Cursor, and Windsurf integration
+- **[OpenClaw Setup](./docs/openclaw-setup.md)** — Agent skill integration
+- **[ChatGPT Setup](./docs/chatgpt-setup.md)** — Custom GPT Actions integration
+
 ## Related
 
 - **[MCP Server](./mcp-server/README.md)** — Use SparkUI from Claude Desktop, Cursor, or Windsurf
