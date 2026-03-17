@@ -173,10 +173,10 @@ function base({ title = 'SparkUI', body = '', id = '', refreshSeconds = 0, extra
   ${extraHead}
 </head>
 <body>
+  ${wsScript}
   <div class="sparkui-container">
     ${body}
   </div>
-  ${wsScript}
   ${analyticsScript}
 </body>
 </html>`;

@@ -11,6 +11,8 @@ const { PageStore } = require('./lib/store');
 const templates = require('./lib/templates');
 const components = require('./lib/components');
 const { AnalyticsStore } = require('./lib/analytics');
+const { RedisStore } = require('./lib/redis');
+const { DeliveryWorker } = require('./lib/delivery-worker');
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -54,12 +56,39 @@ const PUSH_TOKEN = resolvePushToken();
 const OPENCLAW_HOOKS_URL = process.env.OPENCLAW_HOOKS_URL || null;
 const OPENCLAW_HOOKS_TOKEN = process.env.OPENCLAW_HOOKS_TOKEN || null;
 
+// Interactive templates that default openclaw.enabled = true
+const INTERACTIVE_TEMPLATES = new Set([
+  'workout-timer', 'feedback-form', 'poll',
+  'approval-flow', 'checkout', 'shopping-list'
+]);
+
 // ── App ──────────────────────────────────────────────────────────────────────
 
 const app = express();
 const server = http.createServer(app);
 const store = new PageStore();
 const analytics = new AnalyticsStore();
+const redisStore = new RedisStore();
+
+// L1 cache for HTML (in-memory for fast serving)
+const htmlCache = new Map(); // pageId -> html string
+
+// Delivery worker
+const deliveryWorker = new DeliveryWorker(redisStore, {
+  openclawHooksUrl: OPENCLAW_HOOKS_URL,
+  openclawHooksToken: OPENCLAW_HOOKS_TOKEN,
+  getPageMeta: async (pageId) => redisStore.loadMeta(pageId),
+  getPageCallback: (pageId) => {
+    const page = store.get(pageId);
+    if (!page) return null;
+    return { callbackUrl: page.callbackUrl, callbackToken: page.callbackToken };
+  },
+  getPageOpenclaw: (pageId) => {
+    const page = store.get(pageId);
+    if (!page) return null;
+    return page.openclaw || null;
+  },
+});
 
 // Middleware
 app.use(express.json({ limit: '2mb' }));
@@ -98,13 +127,67 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// ── Webhook Callback ─────────────────────────────────────────────────────────
+// ── Page State Helpers (Redis-backed) ────────────────────────────────────────
 
 /**
- * Forward a browser event to the page's callbackUrl via HTTP POST.
- * Fire-and-forget with logging.
+ * Save state for a page (Redis-backed with in-memory store fallback check).
  */
-function forwardToCallback(pageId, type, data) {
+async function savePageState(pageId, data) {
+  const page = store.get(pageId);
+  if (!page) return false;
+  try {
+    await redisStore.saveState(pageId, data);
+    return true;
+  } catch (err) {
+    console.error(`[state] Redis save failed for ${pageId}:`, err.message);
+    return false;
+  }
+}
+
+/**
+ * Load state for a page from Redis.
+ */
+async function loadPageState(pageId) {
+  const page = store.get(pageId);
+  if (!page) return null;
+  try {
+    const entry = await redisStore.loadState(pageId);
+    return entry ? entry.data : null;
+  } catch (err) {
+    console.error(`[state] Redis load failed for ${pageId}:`, err.message);
+    return null;
+  }
+}
+
+// Clean up state when pages expire
+setInterval(() => {
+  // The in-memory store's sweep handles page expiry;
+  // Redis keys expire via TTL automatically
+}, 60_000).unref();
+
+// ── Event & Delivery Helpers ─────────────────────────────────────────────────
+
+/**
+ * Record event and queue for delivery (replaces direct HTTP forwarding).
+ */
+async function recordAndQueueEvent(pageId, type, data) {
+  try {
+    // Write to event stream
+    await redisStore.appendEvent(pageId, type, data);
+    // Queue for delivery worker
+    await redisStore.queueDelivery(pageId, type, data);
+  } catch (err) {
+    console.error(`[event] Failed to record/queue event for ${pageId}:`, err.message);
+    // Fallback: direct forwarding (fire-and-forget, better than nothing)
+    forwardToCallbackDirect(pageId, type, data);
+    forwardToOpenClawDirect(pageId, type, data);
+  }
+}
+
+/**
+ * Direct callback forwarding (fallback if Redis is down).
+ */
+function forwardToCallbackDirect(pageId, type, data) {
   const cb = store.getCallback(pageId);
   if (!cb || !cb.callbackUrl) return;
 
@@ -135,60 +218,43 @@ function forwardToCallback(pageId, type, data) {
     method: 'POST',
     headers,
   }, (res) => {
-    // Drain the response
     res.resume();
     if (res.statusCode >= 400) {
-      console.warn(`[callback] POST ${cb.callbackUrl} returned ${res.statusCode} for page ${pageId}`);
-    } else {
-      console.log(`[callback] Forwarded ${type} event for page ${pageId} -> ${res.statusCode}`);
+      console.warn(`[callback-fallback] POST ${cb.callbackUrl} returned ${res.statusCode}`);
     }
   });
 
   req.on('error', (err) => {
-    console.warn(`[callback] Failed to POST ${cb.callbackUrl} for page ${pageId}: ${err.message}`);
+    console.warn(`[callback-fallback] Failed: ${err.message}`);
   });
 
   req.write(payload);
   req.end();
 }
 
-// ── OpenClaw Webhook Forwarding ──────────────────────────────────────────────
-
 /**
- * Forward a browser event to OpenClaw hooks endpoint.
- * Only fires if page has openclaw config and event type is in eventTypes.
+ * Direct OpenClaw forwarding (fallback if Redis is down).
  */
-function forwardToOpenClaw(pageId, type, data) {
+function forwardToOpenClawDirect(pageId, type, data) {
   const oc = store.getOpenclaw(pageId);
   if (!oc || !oc.enabled) return;
-  if (!OPENCLAW_HOOKS_URL || !OPENCLAW_HOOKS_TOKEN) {
-    console.warn('[openclaw] OPENCLAW_HOOKS_URL or OPENCLAW_HOOKS_TOKEN not set, skipping');
-    return;
-  }
+  if (!OPENCLAW_HOOKS_URL || !OPENCLAW_HOOKS_TOKEN) return;
 
-  // Check if this event type should be forwarded
   const eventTypes = oc.eventTypes || ['completion'];
   if (!eventTypes.includes(type)) return;
 
   const page = store.get(pageId);
   const pageMeta = page ? page.meta : {};
-  const pageTitle = pageMeta.title || (page && page.meta && page.meta.title) || 'Untitled';
+  const pageTitle = pageMeta.title || 'Untitled';
   const templateName = pageMeta.template || 'unknown';
 
-  // Build message
   let message;
   if (type === 'completion') {
-    // Richer message for completion events
     const dataStr = JSON.stringify(data, null, 2);
-    message = `[SparkUI Completion] Page ${pageId}: Form submitted!\n\n` +
-      `📝 **Page:** ${pageTitle}\n` +
-      `📋 **Template:** ${templateName}\n\n` +
-      `**Submitted Data:**\n\`\`\`\n${dataStr}\n\`\`\``;
+    message = `[SparkUI Completion] Page ${pageId}: Form submitted!\n\n📝 **Page:** ${pageTitle}\n📋 **Template:** ${templateName}\n\n**Submitted Data:**\n\`\`\`\n${dataStr}\n\`\`\``;
   } else {
     const dataStr = JSON.stringify(data);
-    message = `[SparkUI Event] Page ${pageId}: ${type} event received.\n\n` +
-      `Data: ${dataStr}\n\n` +
-      `Page title: ${pageTitle}\nTemplate: ${templateName}`;
+    message = `[SparkUI Event] Page ${pageId}: ${type} event received.\n\nData: ${dataStr}\n\nPage title: ${pageTitle}\nTemplate: ${templateName}`;
   }
 
   const payload = JSON.stringify({
@@ -203,37 +269,84 @@ function forwardToOpenClaw(pageId, type, data) {
   const isHttps = url.protocol === 'https:';
   const transport = isHttps ? require('https') : require('http');
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Content-Length': Buffer.byteLength(payload),
-    'User-Agent': 'SparkUI/1.1',
-    'Authorization': `Bearer ${OPENCLAW_HOOKS_TOKEN}`,
-  };
-
   const req = transport.request({
     hostname: url.hostname,
     port: url.port || (isHttps ? 443 : 80),
     path: url.pathname + url.search,
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(payload),
+      'User-Agent': 'SparkUI/1.1',
+      'Authorization': `Bearer ${OPENCLAW_HOOKS_TOKEN}`,
+    },
   }, (res) => {
-    let body = '';
-    res.on('data', (chunk) => { body += chunk; });
-    res.on('end', () => {
-      if (res.statusCode >= 400) {
-        console.warn(`[openclaw] POST ${OPENCLAW_HOOKS_URL} returned ${res.statusCode} for page ${pageId}: ${body}`);
-      } else {
-        console.log(`[openclaw] Forwarded ${type} event for page ${pageId} -> ${res.statusCode}`);
-      }
-    });
+    res.resume();
   });
 
-  req.on('error', (err) => {
-    console.warn(`[openclaw] Failed to POST ${OPENCLAW_HOOKS_URL} for page ${pageId}: ${err.message}`);
-  });
-
+  req.on('error', () => {});
   req.write(payload);
   req.end();
+}
+
+// ── Redis Page Metadata Sync ─────────────────────────────────────────────────
+
+/**
+ * Save page metadata to Redis when a page is created/updated.
+ */
+async function syncPageToRedis(id, page, ttlSeconds) {
+  try {
+    const meta = {
+      html: page.html,
+      meta: page.meta || {},
+      openclaw: page.openclaw || null,
+      callbackUrl: page.callbackUrl || null,
+      callbackToken: page.callbackToken || null,
+      ttl: page.ttl || ttlSeconds,
+      createdAt: page.createdAt,
+      updatedAt: page.updatedAt,
+    };
+    await redisStore.saveMeta(id, meta, ttlSeconds);
+    // Cache HTML in memory
+    htmlCache.set(id, page.html);
+  } catch (err) {
+    console.error(`[redis] Failed to sync page ${id}:`, err.message);
+  }
+}
+
+/**
+ * On server start, reload active pages from Redis into in-memory store.
+ */
+async function reloadPagesFromRedis() {
+  try {
+    const ids = await redisStore.getActivePageIds();
+    let reloaded = 0;
+    for (const id of ids) {
+      const meta = await redisStore.loadMeta(id);
+      if (!meta || !meta.html) continue;
+
+      // Compute remaining TTL
+      const ttl = await redisStore.client.ttl(`page:meta:${id}`);
+      if (ttl <= 0) continue;
+
+      // Restore into in-memory store
+      store.set(id, {
+        html: meta.html,
+        ttl: ttl,
+        callbackUrl: meta.callbackUrl || null,
+        callbackToken: meta.callbackToken || null,
+        meta: meta.meta || {},
+        openclaw: meta.openclaw || null,
+      });
+
+      // L1 HTML cache
+      htmlCache.set(id, meta.html);
+      reloaded++;
+    }
+    console.log(`[redis] Reloaded ${reloaded} pages from Redis`);
+  } catch (err) {
+    console.error('[redis] Failed to reload pages:', err.message);
+  }
 }
 
 // ── WebSocket ────────────────────────────────────────────────────────────────
@@ -242,6 +355,26 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 // Track clients per page ID
 const pageClients = new Map(); // pageId -> Set<ws>
+
+// Push subscription cleanup functions per page
+const pushUnsubscribers = new Map(); // pageId -> unsubscribe fn
+
+/**
+ * Ensure we're subscribed to Redis push channel for a page.
+ */
+function ensurePushSubscription(pageId) {
+  if (pushUnsubscribers.has(pageId)) return;
+  const unsub = redisStore.subscribePush(pageId, (message) => {
+    // Forward push message to all WS clients watching this page
+    const clients = pageClients.get(pageId);
+    if (!clients || clients.size === 0) return;
+    const msg = JSON.stringify({ type: 'push', pageId, ...message });
+    for (const ws of clients) {
+      try { ws.send(msg); } catch {}
+    }
+  });
+  pushUnsubscribers.set(pageId, unsub);
+}
 
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -255,11 +388,19 @@ wss.on('connection', (ws, req) => {
     if (!pageClients.has(pageId)) pageClients.set(pageId, new Set());
     pageClients.get(pageId).add(ws);
 
+    // Subscribe to push channel for this page
+    ensurePushSubscription(pageId);
+
     ws.on('close', () => {
       const clients = pageClients.get(pageId);
       if (clients) {
         clients.delete(ws);
-        if (clients.size === 0) pageClients.delete(pageId);
+        if (clients.size === 0) {
+          pageClients.delete(pageId);
+          // Unsubscribe from push channel
+          const unsub = pushUnsubscribers.get(pageId);
+          if (unsub) { unsub(); pushUnsubscribers.delete(pageId); }
+        }
       }
     });
   }
@@ -277,52 +418,79 @@ wss.on('connection', (ws, req) => {
 
     switch (msg.type) {
       case 'heartbeat':
-        // Respond with pong to keep client happy
         ws._isAlive = true;
         try { ws.send(JSON.stringify({ type: 'pong' })); } catch {}
         break;
 
       case 'analytics_view':
-        // Client-side view tracking with fingerprint
         analytics.recordView(msgPageId, msg.visitorId || null);
         break;
 
       case 'analytics_interaction':
-        // Client-side interaction tracking
         analytics.recordInteraction(msgPageId, msg.data || {});
         break;
 
       case 'analytics_session':
-        // Client-side session/time-on-page tracking
         analytics.recordSession(msgPageId, msg.data || {});
         break;
 
       case 'analytics_completion':
-        // Client-side completion tracking
         analytics.recordCompletion(msgPageId, msg.data || {});
+        break;
+
+      case 'save_state':
+        // Save page state (Redis-backed)
+        if (msgPageId && msg.data !== undefined) {
+          savePageState(msgPageId, msg.data).then((saved) => {
+            if (saved) {
+              try { ws.send(JSON.stringify({ type: 'state_saved', pageId: msgPageId })); } catch {}
+              // Broadcast to other tabs watching this page
+              const clients = pageClients.get(msgPageId);
+              if (clients) {
+                const syncMsg = JSON.stringify({ type: 'state_sync', pageId: msgPageId, data: msg.data });
+                for (const client of clients) {
+                  if (client !== ws) {
+                    try { client.send(syncMsg); } catch {}
+                  }
+                }
+              }
+            } else {
+              try { ws.send(JSON.stringify({ type: 'state_error', pageId: msgPageId, error: 'Page not found or expired' })); } catch {}
+            }
+          }).catch((err) => {
+            console.error(`[ws] save_state error:`, err.message);
+            try { ws.send(JSON.stringify({ type: 'state_error', pageId: msgPageId, error: 'Internal error' })); } catch {}
+          });
+        }
+        break;
+
+      case 'load_state':
+        // Load page state (Redis-backed)
+        if (msgPageId) {
+          loadPageState(msgPageId).then((stateData) => {
+            try { ws.send(JSON.stringify({ type: 'state', pageId: msgPageId, data: stateData })); } catch {}
+          }).catch((err) => {
+            console.error(`[ws] load_state error:`, err.message);
+            try { ws.send(JSON.stringify({ type: 'state', pageId: msgPageId, data: null })); } catch {}
+          });
+        }
         break;
 
       case 'event':
         console.log(`[ws] Event from page ${msgPageId}:`, JSON.stringify(msg.data).slice(0, 200));
-        // Also record as analytics interaction
         analytics.recordInteraction(msgPageId, { type: 'event', element: '', data: msg.data });
-        forwardToCallback(msgPageId, 'event', msg.data);
-        forwardToOpenClaw(msgPageId, 'event', msg.data);
+        recordAndQueueEvent(msgPageId, 'event', msg.data);
         break;
 
       case 'completion':
         console.log(`[ws] Completion from page ${msgPageId}:`, JSON.stringify(msg.data).slice(0, 200));
-        // Also record as analytics completion
         analytics.recordCompletion(msgPageId, { type: 'completion', data: msg.data });
-        forwardToCallback(msgPageId, 'completion', msg.data);
-        forwardToOpenClaw(msgPageId, 'completion', msg.data);
+        recordAndQueueEvent(msgPageId, 'completion', msg.data);
         break;
 
       default:
-        // Unknown type — forward anyway if it has data
         if (msg.data) {
-          forwardToCallback(msgPageId, msg.type || 'unknown', msg.data);
-          forwardToOpenClaw(msgPageId, msg.type || 'unknown', msg.data);
+          recordAndQueueEvent(msgPageId, msg.type || 'unknown', msg.data);
         }
         break;
     }
@@ -330,7 +498,6 @@ wss.on('connection', (ws, req) => {
 
   ws.on('error', () => {}); // swallow errors
 
-  // Respond to WS-level pong frames (from server ping)
   ws.on('pong', () => {
     ws._isAlive = true;
   });
@@ -341,7 +508,6 @@ wss.on('connection', (ws, req) => {
 const WS_PING_INTERVAL = setInterval(() => {
   wss.clients.forEach((ws) => {
     if (ws._isAlive === false) {
-      // Stale — hasn't responded since last ping
       console.log(`[ws] Dropping stale client for page ${ws._pageId || 'unknown'}`);
       return ws.terminate();
     }
@@ -374,8 +540,12 @@ function notifyPageDestroy(pageId) {
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 
-// Health check
+// Landing page
 app.get('/', (req, res) => {
+  const landingPath = path.join(__dirname, 'landing', 'index.html');
+  if (fs.existsSync(landingPath)) {
+    return res.sendFile(landingPath);
+  }
   res.json({
     status: 'ok',
     service: 'sparkui',
@@ -387,26 +557,55 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health/status check (API) — now includes Redis health
+app.get('/api/status', async (req, res) => {
+  const redisHealthy = await redisStore.healthCheck();
+  res.json({
+    status: 'ok',
+    service: 'sparkui',
+    version: '1.1.0',
+    pages: store.size,
+    wsClients: wss.clients.size,
+    templates: templates.list(),
+    uptime: Math.floor(process.uptime()),
+    redis: redisHealthy ? 'connected' : 'disconnected',
+  });
+});
+
 // Serve a page
 app.get('/s/:id', (req, res) => {
-  const page = store.get(req.params.id);
-  if (!page) {
-    return res.status(410).set('Content-Type', 'text/html').send(
-      `<!DOCTYPE html><html><head><title>Gone</title></head><body style="background:#111;color:#888;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1 style="font-size:3rem;margin-bottom:8px">⚡</h1><p>This page has expired or been removed.</p><p style="color:#555;font-size:0.85rem">SparkUI pages are ephemeral by design.</p></div></body></html>`
-    );
+  const id = req.params.id;
+
+  // Try L1 cache first, then store
+  let html = htmlCache.get(id);
+  if (!html) {
+    const page = store.get(id);
+    if (!page) {
+      return res.status(410).set('Content-Type', 'text/html').send(
+        `<!DOCTYPE html><html><head><title>Gone</title></head><body style="background:#111;color:#888;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1 style="font-size:3rem;margin-bottom:8px">⚡</h1><p>This page has expired or been removed.</p><p style="color:#555;font-size:0.85rem">SparkUI pages are ephemeral by design.</p></div></body></html>`
+      );
+    }
+    html = page.html;
+    htmlCache.set(id, html);
+  } else {
+    // Verify page still exists in store (not expired)
+    if (!store.get(id)) {
+      htmlCache.delete(id);
+      return res.status(410).set('Content-Type', 'text/html').send(
+        `<!DOCTYPE html><html><head><title>Gone</title></head><body style="background:#111;color:#888;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1 style="font-size:3rem;margin-bottom:8px">⚡</h1><p>This page has expired or been removed.</p><p style="color:#555;font-size:0.85rem">SparkUI pages are ephemeral by design.</p></div></body></html>`
+      );
+    }
   }
-  store.recordView(req.params.id);
 
-  // Record analytics view with visitor fingerprint from query or header
+  store.recordView(id);
   const visitorId = req.query._vid || req.headers['x-visitor-id'] || null;
-  analytics.recordView(req.params.id, visitorId);
+  analytics.recordView(id, visitorId);
 
-  res.set('Content-Type', 'text/html').send(page.html);
+  res.set('Content-Type', 'text/html').send(html);
 });
 
 /**
  * Prettify a template name for OG defaults.
- * e.g. "macro-tracker" → "Macro Tracker"
  */
 function prettifyTemplateName(name) {
   if (!name) return 'SparkUI';
@@ -414,7 +613,7 @@ function prettifyTemplateName(name) {
 }
 
 // Push API — create a page
-app.post('/api/push', requireAuth, (req, res) => {
+app.post('/api/push', requireAuth, async (req, res) => {
   try {
     const { html, template, data, ttl, callbackUrl, callbackToken, meta, openclaw, og } = req.body;
 
@@ -444,7 +643,7 @@ app.post('/api/push', requireAuth, (req, res) => {
       finalHtml = html;
     }
 
-    // Enrich meta with template/title for OpenClaw forwarding context
+    // Enrich meta with template/title
     const enrichedMeta = {
       ...(meta || {}),
       template: template || (meta && meta.template) || null,
@@ -452,17 +651,28 @@ app.post('/api/push', requireAuth, (req, res) => {
       og: ogDefaults,
     };
 
-    store.set(id, {
+    // Auto-enable openclaw for interactive templates
+    let finalOpenclaw = openclaw || null;
+    if (!finalOpenclaw && template && INTERACTIVE_TEMPLATES.has(template)) {
+      finalOpenclaw = { enabled: true, eventTypes: ['completion'] };
+    }
+
+    const pageOpts = {
       html: finalHtml,
       ttl: ttl || undefined,
       callbackUrl: callbackUrl || null,
       callbackToken: callbackToken || null,
       meta: { ...enrichedMeta, data: data || null },
-      openclaw: openclaw || null,
-    });
+      openclaw: finalOpenclaw,
+    };
 
-    // Initialize analytics for this page
+    store.set(id, pageOpts);
+
+    // Sync to Redis for persistence
     const pageTtl = ttl || 3600;
+    await syncPageToRedis(id, store.get(id), pageTtl);
+
+    // Initialize analytics
     analytics.init(id, {
       template: template || 'raw',
       created: new Date().toISOString(),
@@ -494,7 +704,7 @@ app.get('/api/pages/:id', requireAuth, (req, res) => {
 });
 
 // Update a page
-app.patch('/api/pages/:id', requireAuth, (req, res) => {
+app.patch('/api/pages/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const page = store.get(id);
 
@@ -513,23 +723,26 @@ app.patch('/api/pages/:id', requireAuth, (req, res) => {
   } else if (html) {
     finalHtml = html;
   } else if (data && page.meta && page.meta.template && templates.has(page.meta.template)) {
-    // Re-render existing template with new data
     finalHtml = templates.render(page.meta.template, { ...data, _pageId: id });
   }
 
-  // Update data in meta if provided
   if (data && page.meta) {
     page.meta.data = data;
   }
 
-  // Update HTML if we have new content, or just extend TTL
   if (finalHtml) {
     store.update(id, { html: finalHtml, ttl });
+    htmlCache.set(id, finalHtml);
   } else if (ttl) {
-    // TTL-only update
     store.update(id, { html: page.html, ttl });
   } else if (!finalHtml && !ttl) {
     return res.status(400).json({ error: 'Provide "html", "template" + "data", "data" (for template pages), or "ttl"' });
+  }
+
+  // Sync updated page to Redis
+  const updatedPage = store.get(id);
+  if (updatedPage) {
+    await syncPageToRedis(id, updatedPage, ttl || updatedPage.ttl || 3600);
   }
 
   notifyPageUpdate(id);
@@ -538,14 +751,135 @@ app.patch('/api/pages/:id', requireAuth, (req, res) => {
   res.json(details);
 });
 
+// ── Page State REST Endpoints ─────────────────────────────────────────────────
+
+// Save page state
+app.post('/api/pages/:id/state', async (req, res) => {
+  const { id } = req.params;
+  const page = store.get(id);
+  if (!page) {
+    return res.status(404).json({ error: 'Page not found or expired' });
+  }
+  const saved = await savePageState(id, req.body);
+  if (saved) {
+    // Broadcast to WS clients for multi-tab sync
+    const clients = pageClients.get(id);
+    if (clients) {
+      const syncMsg = JSON.stringify({ type: 'state_sync', pageId: id, data: req.body });
+      for (const ws of clients) {
+        try { ws.send(syncMsg); } catch {}
+      }
+    }
+    res.json({ ok: true, pageId: id });
+  } else {
+    res.status(500).json({ error: 'Failed to save state' });
+  }
+});
+
+// Load page state
+app.get('/api/pages/:id/state', async (req, res) => {
+  const { id } = req.params;
+  const page = store.get(id);
+  if (!page) {
+    return res.status(404).json({ error: 'Page not found or expired' });
+  }
+  const stateData = await loadPageState(id);
+  res.json({ pageId: id, data: stateData });
+});
+
+// ── Event REST Endpoints (NEW) ───────────────────────────────────────────────
+
+// POST /api/pages/:id/events — accept events from client via REST
+app.post('/api/pages/:id/events', async (req, res) => {
+  const { id } = req.params;
+  const page = store.get(id);
+  if (!page) {
+    return res.status(404).json({ error: 'Page not found or expired' });
+  }
+
+  const { type, data } = req.body;
+  const eventType = type || 'event';
+
+  console.log(`[rest] Event from page ${id}:`, JSON.stringify(data).slice(0, 200));
+  analytics.recordInteraction(id, { type: eventType, element: '', data: data || {} });
+
+  try {
+    await recordAndQueueEvent(id, eventType, data || {});
+    res.json({ ok: true, pageId: id, type: eventType });
+  } catch (err) {
+    console.error(`[rest] Event error for ${id}:`, err.message);
+    res.status(500).json({ error: 'Failed to record event' });
+  }
+});
+
+// GET /api/pages/:id/events — query event history (auth required)
+app.get('/api/pages/:id/events', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const since = req.query.since || '0-0';
+  const count = parseInt(req.query.count, 10) || 100;
+
+  try {
+    const events = await redisStore.readEvents(id, since, count);
+    res.json({ pageId: id, events, count: events.length });
+  } catch (err) {
+    console.error(`[rest] Event query error for ${id}:`, err.message);
+    res.status(500).json({ error: 'Failed to query events' });
+  }
+});
+
+// ── Agent Push API (NEW) ─────────────────────────────────────────────────────
+
+// POST /api/pages/:id/push — agent push to live page
+app.post('/api/pages/:id/push', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const page = store.get(id);
+  if (!page) {
+    return res.status(404).json({ error: 'Page not found or expired' });
+  }
+
+  const { type, data } = req.body;
+  if (!type || !['toast', 'slot', 'reload'].includes(type)) {
+    return res.status(400).json({ error: 'type must be "toast", "slot", or "reload"' });
+  }
+
+  try {
+    // Publish via Redis pub/sub for WS delivery
+    await redisStore.publishPush(id, { type, data: data || {} });
+
+    // Also send directly to connected WS clients as fallback
+    const clients = pageClients.get(id);
+    let delivered = 0;
+    if (clients) {
+      const msg = JSON.stringify({ type: 'push', pageId: id, pushType: type, data: data || {} });
+      for (const ws of clients) {
+        try { ws.send(msg); delivered++; } catch {}
+      }
+    }
+
+    res.json({ ok: true, pageId: id, pushType: type, delivered });
+  } catch (err) {
+    console.error(`[push] Error for ${id}:`, err.message);
+    res.status(500).json({ error: 'Failed to push' });
+  }
+});
+
 // Delete a page
-app.delete('/api/pages/:id', requireAuth, (req, res) => {
+app.delete('/api/pages/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const deleted = store.delete(id);
   if (!deleted) {
     return res.status(404).json({ error: 'Page not found' });
   }
-  notifyPageDestroy(id); // notify clients the page is gone
+  htmlCache.delete(id);
+  notifyPageDestroy(id);
+
+  // Clean up Redis
+  try {
+    await redisStore.cleanupPage(id);
+  } catch (err) {
+    console.error(`[redis] Cleanup failed for ${id}:`, err.message);
+  }
+
   res.json({ id, deleted: true });
 });
 
@@ -569,7 +903,6 @@ app.get('/og/:id.svg', (req, res) => {
   res.set('Content-Type', 'image/svg+xml').set('Cache-Control', 'public, max-age=3600').send(svg);
 });
 
-/** Escape text for safe XML/SVG embedding */
 function escapeXml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
@@ -577,7 +910,7 @@ function escapeXml(str) {
 
 // ── Compose API ──────────────────────────────────────────────────────────────
 
-app.post('/api/compose', requireAuth, (req, res) => {
+app.post('/api/compose', requireAuth, async (req, res) => {
   try {
     const layout = req.body;
 
@@ -587,10 +920,7 @@ app.post('/api/compose', requireAuth, (req, res) => {
 
     const { html, pushBody } = components.compose(layout);
     const id = uuidv4();
-
-    // Replace placeholder page ID with actual UUID
     const finalHtml = html.replace(/__PAGE_ID__/g, id);
-
     const ttl = layout.ttl || undefined;
     const openclaw = layout.openclaw || null;
 
@@ -601,8 +931,9 @@ app.post('/api/compose', requireAuth, (req, res) => {
       openclaw,
     });
 
-    // Initialize analytics for composed page
     const composedTtl = ttl || 3600;
+    await syncPageToRedis(id, store.get(id), composedTtl);
+
     analytics.init(id, {
       template: 'composed',
       created: new Date().toISOString(),
@@ -619,12 +950,10 @@ app.post('/api/compose', requireAuth, (req, res) => {
 
 // ── Analytics API ────────────────────────────────────────────────────────────
 
-// Summary analytics across all pages
 app.get('/api/analytics', requireAuth, (req, res) => {
   res.json(analytics.getSummary());
 });
 
-// Detailed analytics for a specific page
 app.get('/api/analytics/:pageId', requireAuth, (req, res) => {
   const data = analytics.getPage(req.params.pageId);
   if (!data) {
@@ -633,33 +962,23 @@ app.get('/api/analytics/:pageId', requireAuth, (req, res) => {
   res.json(data);
 });
 
-// Analytics beacon endpoint (POST) — for client-side tracking without WS
 app.post('/api/analytics/beacon', express.json(), (req, res) => {
   const { pageId, type, visitorId, data } = req.body;
   if (!pageId) return res.status(400).json({ error: 'pageId required' });
 
   switch (type) {
-    case 'view':
-      analytics.recordView(pageId, visitorId);
-      break;
-    case 'interaction':
-      analytics.recordInteraction(pageId, data || {});
-      break;
-    case 'completion':
-      analytics.recordCompletion(pageId, data || {});
-      break;
-    case 'session':
-      analytics.recordSession(pageId, data || {});
-      break;
-    default:
-      break;
+    case 'view': analytics.recordView(pageId, visitorId); break;
+    case 'interaction': analytics.recordInteraction(pageId, data || {}); break;
+    case 'completion': analytics.recordCompletion(pageId, data || {}); break;
+    case 'session': analytics.recordSession(pageId, data || {}); break;
+    default: break;
   }
   res.json({ ok: true });
 });
 
 // ── Test Echo Endpoint ───────────────────────────────────────────────────────
 
-const echoLog = []; // In-memory log of received webhooks (last 50)
+const echoLog = [];
 
 app.post('/api/test/echo', requireAuth, (req, res) => {
   const entry = {
@@ -672,36 +991,67 @@ app.post('/api/test/echo', requireAuth, (req, res) => {
   res.json({ ok: true, received: entry });
 });
 
-// View echo log
 app.get('/api/test/echo', requireAuth, (req, res) => {
   res.json({ entries: echoLog, count: echoLog.length });
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
 
-server.listen(PORT, () => {
-  console.log(`⚡ SparkUI server running on port ${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}/`);
-  console.log(`   Push token: ${PUSH_TOKEN.slice(0, 8)}...${PUSH_TOKEN.slice(-4)}`);
-  console.log(`   Templates: ${templates.list().join(', ')}`);
-  console.log(`   WebSocket: ws://localhost:${PORT}/ws`);
+async function startServer() {
+  // Check Redis health
+  const redisOk = await redisStore.healthCheck();
+  if (redisOk) {
+    console.log('⚡ Redis connected');
+    // Reload pages from Redis
+    await reloadPagesFromRedis();
+    // Start delivery worker
+    await deliveryWorker.start();
+  } else {
+    console.warn('⚠️  Redis not available — running in degraded mode (in-memory only)');
+  }
+
+  server.listen(PORT, () => {
+    console.log(`⚡ SparkUI server running on port ${PORT}`);
+    console.log(`   Health: http://localhost:${PORT}/`);
+    console.log(`   Push token: ${PUSH_TOKEN.slice(0, 8)}...${PUSH_TOKEN.slice(-4)}`);
+    console.log(`   Templates: ${templates.list().join(', ')}`);
+    console.log(`   WebSocket: ws://localhost:${PORT}/ws`);
+    console.log(`   Redis: ${redisOk ? 'connected ✓' : 'disconnected ✗ (degraded mode)'}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error('Failed to start:', err);
+  process.exit(1);
 });
 
 // Graceful shutdown
-function shutdown(signal) {
+async function shutdown(signal) {
   console.log(`\n${signal} received — shutting down...`);
   clearInterval(WS_PING_INTERVAL);
+
+  // Stop delivery worker
+  try { await deliveryWorker.stop(); } catch {}
+
+  // Clean up push subscriptions
+  for (const [, unsub] of pushUnsubscribers) {
+    try { unsub(); } catch {}
+  }
+  pushUnsubscribers.clear();
+
+  // Disconnect Redis
+  try { await redisStore.shutdown(); } catch {}
+
   server.close(() => {
     store.destroy();
     wss.close();
     console.log('SparkUI stopped.');
     process.exit(0);
   });
-  // Force exit after 5s
   setTimeout(() => process.exit(1), 5000).unref();
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-module.exports = { app, server }; // for testing
+module.exports = { app, server };

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SparkUI — Ephemeral Interactive UIs for AI Agents</title>
-<meta name="description" content="Generate rich, interactive web pages from chat. No app install required. Pages self-destruct.">
+<meta name="description" content="The only way to give AI agents interactive UIs — through just a URL. No app installs. Pages self-destruct.">
 <meta name="theme-color" content="#0f172a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <style>
@@ -13,7 +13,7 @@
   --bg:#0f172a;--bg2:#1e293b;--bg3:#334155;
   --text:#e2e8f0;--text-dim:#94a3b8;--text-bright:#f8fafc;
   --green:#22c55e;--green-dim:#16a34a;--green-glow:rgba(34,197,94,.15);
-  --purple:#a855f7;--blue:#3b82f6;--orange:#f97316;
+  --purple:#a855f7;--blue:#3b82f6;--orange:#f97316;--red:#ef4444;
   --radius:12px;--radius-sm:8px;
 }
 html{scroll-behavior:smooth;font-size:16px}
@@ -42,30 +42,99 @@ section{padding:80px 0}
 }
 .section-subtitle{color:var(--text-dim);font-size:1.1rem;max-width:600px}
 
+/* ── STICKY NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  padding:16px 0;transition:all .35s ease;
+}
+.nav.scrolled{
+  background:rgba(15,23,42,.95);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--bg3);padding:10px 0;
+}
+.nav-inner{
+  max-width:1100px;margin:0 auto;padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-logo{
+  font-size:1.2rem;font-weight:800;color:var(--text-bright);
+  display:flex;align-items:center;gap:8px;
+}
+.nav-logo span{
+  background:linear-gradient(135deg,var(--green),#4ade80);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.nav-links{display:flex;align-items:center;gap:24px;list-style:none}
+.nav-links a{
+  color:var(--text-dim);font-size:.88rem;font-weight:500;
+  transition:color .2s;
+}
+.nav-links a:hover{color:var(--text-bright)}
+.nav-links .nav-ext{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:50px;font-size:.82rem;
+  border:1px solid var(--bg3);color:var(--text-dim);
+  transition:all .2s;
+}
+.nav-links .nav-ext:hover{border-color:var(--green);color:var(--green)}
+.nav-mobile-toggle{display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer}
+@media(max-width:768px){
+  .nav-links{
+    display:none;flex-direction:column;position:absolute;top:100%;left:0;right:0;
+    background:rgba(15,23,42,.98);backdrop-filter:blur(12px);
+    padding:20px 24px;gap:16px;border-bottom:1px solid var(--bg3);
+  }
+  .nav-links.open{display:flex}
+  .nav-mobile-toggle{display:block}
+}
+
 /* ── HERO ── */
 .hero{
-  min-height:90vh;display:flex;align-items:center;justify-content:center;
-  text-align:center;position:relative;
-  background:radial-gradient(ellipse at 50% 0%,rgba(34,197,94,.08) 0%,transparent 60%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  text-align:center;position:relative;overflow:hidden;
+  padding-top:80px;
 }
-.hero-spark{font-size:clamp(3rem,8vw,5rem);display:block;margin-bottom:16px;filter:drop-shadow(0 0 40px rgba(34,197,94,.4))}
+.hero-bg{
+  position:absolute;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse at 20% 50%,rgba(34,197,94,.07) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 20%,rgba(34,197,94,.05) 0%,transparent 40%),
+    radial-gradient(ellipse at 50% 100%,rgba(59,130,246,.04) 0%,transparent 50%);
+  animation:heroShift 12s ease-in-out infinite alternate;
+}
+@keyframes heroShift{
+  0%{opacity:.7;transform:scale(1)}
+  100%{opacity:1;transform:scale(1.05)}
+}
+.hero-content{position:relative;z-index:1}
+.hero-spark{font-size:clamp(3rem,8vw,4.5rem);display:block;margin-bottom:16px;filter:drop-shadow(0 0 40px rgba(34,197,94,.4))}
 .hero h1{
-  font-size:clamp(3rem,8vw,5rem);font-weight:900;
+  font-size:clamp(3rem,8vw,4.5rem);font-weight:900;
   color:var(--text-bright);letter-spacing:-.02em;margin-bottom:16px;
 }
-.hero h1 span{
+.hero h1 em{
+  font-style:normal;
   background:linear-gradient(135deg,var(--green),#4ade80);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;
 }
 .hero .tagline{
-  font-size:clamp(1.1rem,2.5vw,1.5rem);color:var(--text);
-  font-weight:500;margin-bottom:12px;
+  font-size:clamp(1.1rem,2.5vw,1.45rem);color:var(--text);
+  font-weight:500;margin-bottom:12px;max-width:700px;margin-left:auto;margin-right:auto;
 }
 .hero .subtitle{
-  font-size:clamp(.95rem,2vw,1.15rem);color:var(--text-dim);
-  max-width:560px;margin:0 auto 40px;
+  font-size:clamp(.95rem,2vw,1.1rem);color:var(--text-dim);
+  max-width:560px;margin:0 auto 32px;
 }
+.hero-badges{
+  display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:36px;
+}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:50px;font-size:.8rem;font-weight:600;
+  background:var(--bg2);border:1px solid var(--bg3);color:var(--text-dim);
+}
+.badge svg{width:16px;height:16px}
 .cta-group{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
 .btn{
   display:inline-flex;align-items:center;gap:8px;
@@ -76,12 +145,23 @@ section{padding:80px 0}
   background:var(--green);color:#0f172a;
   box-shadow:0 0 30px rgba(34,197,94,.25);
 }
-.btn-primary:hover{background:#4ade80;box-shadow:0 0 40px rgba(34,197,94,.4);color:#0f172a}
+.btn-primary:hover{background:#4ade80;box-shadow:0 0 40px rgba(34,197,94,.4);color:#0f172a;transform:translateY(-1px)}
 .btn-secondary{
   background:transparent;color:var(--text);
   border:1.5px solid var(--bg3);
 }
-.btn-secondary:hover{border-color:var(--green);color:var(--green)}
+.btn-secondary:hover{border-color:var(--green);color:var(--green);transform:translateY(-1px)}
+
+/* Install snippet */
+.install-snippet{
+  display:inline-flex;align-items:center;gap:12px;
+  background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;
+  padding:10px 18px;margin-top:24px;font-size:.88rem;color:var(--text-dim);
+  cursor:pointer;transition:border-color .2s;
+}
+.install-snippet:hover{border-color:var(--green)}
+.install-snippet code{color:var(--green)}
+.install-snippet .copy-hint{font-size:.75rem;opacity:.6}
 
 /* ── PROBLEM / SOLUTION ── */
 .problem-solution{background:var(--bg2)}
@@ -95,6 +175,35 @@ section{padding:80px 0}
 .ps-card.solution h3{color:var(--green)}
 .ps-card p{color:var(--text-dim);line-height:1.7}
 .ps-card p+p{margin-top:12px}
+
+/* ── STORIES ── */
+.stories{background:var(--bg)}
+.stories-grid{display:grid;grid-template-columns:1fr;gap:36px;margin-top:48px}
+.story{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border-radius:var(--radius);overflow:hidden;border:1px solid var(--bg3);
+}
+@media(max-width:768px){.story{grid-template-columns:1fr}}
+.story-before,.story-after{padding:32px}
+.story-before{background:rgba(239,68,68,.04)}
+.story-after{background:rgba(34,197,94,.04)}
+.story-label{
+  font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  margin-bottom:12px;display:flex;align-items:center;gap:6px;
+}
+.story-before .story-label{color:#f87171}
+.story-after .story-label{color:var(--green)}
+.story-title{font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:8px}
+.story p{color:var(--text-dim);font-size:.92rem;line-height:1.6}
+.story-chat{
+  background:var(--bg);border-radius:var(--radius-sm);padding:16px;
+  margin-top:12px;font-family:'SF Mono',Monaco,Consolas,monospace;
+  font-size:.82rem;color:var(--text-dim);line-height:1.7;
+  border:1px solid var(--bg3);
+}
+.story-chat .agent{color:var(--blue)}
+.story-chat .user{color:var(--orange)}
+.story-chat .danger{color:#f87171}
 
 /* ── DEMOS ── */
 .demos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:24px;margin-top:40px}
@@ -114,6 +223,13 @@ section{padding:80px 0}
 }
 .demo-btn:hover{background:var(--green);color:#0f172a;border-color:var(--green)}
 .demo-btn.loading{opacity:.6;pointer-events:none}
+
+/* Template code example inline */
+.demo-code-inline{
+  margin-top:32px;padding:24px;background:var(--bg2);
+  border:1px solid var(--bg3);border-radius:var(--radius);
+}
+.demo-code-inline .section-label{margin-bottom:8px}
 
 /* ── HOW IT WORKS ── */
 .how-it-works{background:var(--bg2)}
@@ -150,20 +266,52 @@ section{padding:80px 0}
 @media(max-width:768px){.int-grid{grid-template-columns:1fr;gap:20px}}
 .int-card{
   background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);
-  padding:28px;text-align:center;transition:border-color .3s;
+  padding:28px;text-align:center;transition:all .3s;
 }
-.int-card:hover{border-color:var(--green)}
+.int-card:hover{border-color:var(--green);transform:translateY(-2px)}
 .int-icon{font-size:2.2rem;margin-bottom:12px;display:block}
 .int-card h3{font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:8px}
 .int-card p{color:var(--text-dim);font-size:.9rem;line-height:1.5}
+
+/* Integration code examples */
+.int-code-examples{
+  display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:36px;
+}
+@media(max-width:768px){.int-code-examples{grid-template-columns:1fr}}
+
+/* ── COMPARISON ── */
+.compare-section{background:var(--bg2)}
+.compare-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:40px;
+}
+@media(max-width:768px){.compare-grid{grid-template-columns:1fr 1fr;gap:16px}}
+@media(max-width:480px){.compare-grid{grid-template-columns:1fr}}
+.compare-card{
+  background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius);
+  padding:24px;text-align:center;transition:all .3s;
+}
+.compare-card.highlight{
+  border-color:var(--green);box-shadow:0 0 30px rgba(34,197,94,.1);
+  position:relative;
+}
+.compare-card.highlight::before{
+  content:'✦ Purpose-Built';position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:var(--green);color:#0f172a;font-size:.7rem;font-weight:700;
+  padding:3px 12px;border-radius:50px;white-space:nowrap;
+}
+.compare-card h4{font-size:1rem;font-weight:700;color:var(--text-bright);margin-bottom:12px}
+.compare-card ul{list-style:none;text-align:left;font-size:.85rem;color:var(--text-dim)}
+.compare-card li{padding:4px 0;display:flex;align-items:flex-start;gap:6px}
+.compare-card li .icon{flex-shrink:0}
+.compare-card.highlight li .icon{color:var(--green)}
 
 /* ── CODE ── */
 .code-section{background:var(--bg2)}
 .code-block{
   background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius);
-  padding:24px 28px;margin-top:32px;overflow-x:auto;position:relative;
+  padding:24px 28px;margin-top:24px;overflow-x:auto;position:relative;
 }
-.code-block pre{color:var(--text);font-size:.88rem;line-height:1.7;white-space:pre}
+.code-block pre{color:var(--text);font-size:.85rem;line-height:1.7;white-space:pre}
 .code-lang{
   position:absolute;top:12px;right:16px;font-size:.7rem;
   color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;font-weight:600;
@@ -173,6 +321,25 @@ section{padding:80px 0}
 .code-block .cm{color:var(--text-dim)}
 .code-block .fn{color:var(--blue)}
 .code-block .num{color:var(--orange)}
+.code-block .prop{color:#f472b6}
+
+/* ── TRUST / SOCIAL PROOF ── */
+.trust-section{background:var(--bg)}
+.trust-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:40px}
+@media(max-width:768px){.trust-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.trust-grid{grid-template-columns:1fr}}
+.trust-stat{text-align:center;padding:24px}
+.trust-stat .num{
+  font-size:2.2rem;font-weight:900;color:var(--green);
+  margin-bottom:4px;display:block;
+}
+.trust-stat .label{color:var(--text-dim);font-size:.88rem}
+.trust-details{
+  display:flex;justify-content:center;gap:40px;flex-wrap:wrap;
+  margin-top:36px;padding-top:32px;border-top:1px solid var(--bg3);
+}
+.trust-detail{display:flex;align-items:center;gap:10px;color:var(--text-dim);font-size:.92rem}
+.trust-detail strong{color:var(--text-bright)}
 
 /* ── FOOTER ── */
 footer{
@@ -187,8 +354,16 @@ footer{
 .footer-meta span{color:var(--green)}
 
 /* Animations */
-.fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s,transform .6s}
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s ease-out,transform .6s ease-out}
 .fade-in.visible{opacity:1;transform:translateY(0)}
+.fade-in.d1{transition-delay:.1s}
+.fade-in.d2{transition-delay:.2s}
+.fade-in.d3{transition-delay:.3s}
+.fade-in.d4{transition-delay:.4s}
+.fade-in.d5{transition-delay:.5s}
+.fade-in.d6{transition-delay:.6s}
+.fade-in.d7{transition-delay:.7s}
+.fade-in.d8{transition-delay:.8s}
 
 /* Scrollbar */
 ::-webkit-scrollbar{width:6px;height:6px}
@@ -198,22 +373,52 @@ footer{
 </head>
 <body>
 
+<!-- STICKY NAV -->
+<nav class="nav" id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">⚡ <span>SparkUI</span></a>
+    <button class="nav-mobile-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">☰</button>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#demos">Demos</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#integrations">Integrations</a></li>
+      <li><a href="https://github.com/limeade-labs/sparkui#readme" target="_blank">Docs</a></li>
+      <li><a href="https://github.com/limeade-labs/sparkui" target="_blank" class="nav-ext">GitHub</a></li>
+      <li><a href="https://www.npmjs.com/package/@limeade-labs/sparkui" target="_blank" class="nav-ext">npm</a></li>
+    </ul>
+  </div>
+</nav>
+
 <!-- HERO -->
 <section class="hero">
-  <div class="container">
+  <div class="hero-bg"></div>
+  <div class="container hero-content">
     <span class="hero-spark">⚡</span>
-    <h1><span>SparkUI</span></h1>
-    <p class="tagline">Ephemeral interactive UIs for AI agents</p>
-    <p class="subtitle">Generate rich web pages from chat — no app install required. Pages self-destruct.</p>
+    <h1><em>SparkUI</em></h1>
+    <p class="tagline">The only way to give AI agents interactive UIs — through just a URL</p>
+    <p class="subtitle">Rich, ephemeral web pages generated on demand. No installs. No accounts. Pages self-destruct when done.</p>
+    <div class="hero-badges">
+      <span class="badge">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/></svg>
+        Open Source
+      </span>
+      <span class="badge">🎯 11 Templates</span>
+      <span class="badge">📦 npm ready</span>
+    </div>
     <div class="cta-group">
       <a href="https://github.com/limeade-labs/sparkui" class="btn btn-primary" target="_blank">Get Started</a>
       <a href="#demos" class="btn btn-secondary">Try a Demo ↓</a>
+    </div>
+    <div class="install-snippet" onclick="navigator.clipboard.writeText('npm install @limeade-labs/sparkui');this.querySelector('.copy-hint').textContent='Copied!'">
+      <code>npm install @limeade-labs/sparkui</code>
+      <span class="copy-hint">Click to copy</span>
     </div>
   </div>
 </section>
 
 <!-- PROBLEM / SOLUTION -->
-<section class="problem-solution">
+<section class="problem-solution" id="features">
   <div class="container">
     <div class="section-label">Why SparkUI?</div>
     <h2 class="section-title">AI deserves better than text walls</h2>
@@ -223,7 +428,7 @@ footer{
         <p>AI agents are stuck in text. Macro trackers as emoji bars. Checkout flows as "paste your card number in chat." Workout timers as… countdown text?</p>
         <p>Rich interactions squeezed into a text box. Users deserve better. Agents can do better.</p>
       </div>
-      <div class="ps-card solution fade-in">
+      <div class="ps-card solution fade-in d1">
         <h3>⚡ The Solution</h3>
         <p>SparkUI generates real, interactive web UIs on demand. A link in chat → rich UI in browser → results back to the agent.</p>
         <p>No app installs. No accounts. No setup. Just a URL that works everywhere and self-destructs when done.</p>
@@ -232,8 +437,100 @@ footer{
   </div>
 </section>
 
+<!-- REAL-WORLD STORIES -->
+<section class="stories">
+  <div class="container">
+    <div class="section-label">Real-World Scenarios</div>
+    <h2 class="section-title">See the difference</h2>
+    <p class="section-subtitle">AI agents solve real problems. SparkUI gives them the UI to do it right.</p>
+
+    <div class="stories-grid">
+      <!-- Story 1: Payment -->
+      <div class="story fade-in">
+        <div class="story-before">
+          <div class="story-label">✗ Without SparkUI</div>
+          <div class="story-title">💳 Payment in Chat</div>
+          <div class="story-chat">
+            <span class="agent">Agent:</span> Ready to check out! Total is $29.99.<br>
+            <span class="agent">Agent:</span> Please paste your card number here.<br>
+            <span class="user">User:</span> <span class="danger">4242 4242 4242 4242</span><br>
+            <span class="user">User:</span> <span class="danger">Exp: 12/27, CVV: 123</span><br>
+            <span class="cm">// Card data in plaintext. In chat history. Forever.</span>
+          </div>
+        </div>
+        <div class="story-after">
+          <div class="story-label">✓ With SparkUI</div>
+          <div class="story-title">💳 Ephemeral Checkout</div>
+          <div class="story-chat">
+            <span class="agent">Agent:</span> Here's your secure checkout:<br>
+            <span class="fn">→ sparkui.dev/s/xK9m2p</span><br><br>
+            <span class="cm">// Real checkout form. SSL encrypted.</span><br>
+            <span class="cm">// Self-destructs after payment.</span><br>
+            <span class="cm">// Zero card data in chat history.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Story 2: Workout -->
+      <div class="story fade-in d1">
+        <div class="story-before">
+          <div class="story-label">✗ Without SparkUI</div>
+          <div class="story-title">⏱️ Workout Tracking</div>
+          <div class="story-chat">
+            <span class="agent">Agent:</span> Push-ups! 30 seconds. Ready?<br>
+            <span class="agent">Agent:</span> 30... 29... 28...<br>
+            <span class="agent">Agent:</span> 27... 26...<br>
+            <span class="user">User:</span> Can you just send them faster?<br>
+            <span class="agent">Agent:</span> 25... 24... 23...<br>
+            <span class="cm">// 30 messages for one exercise. No audio. No visual.</span>
+          </div>
+        </div>
+        <div class="story-after">
+          <div class="story-label">✓ With SparkUI</div>
+          <div class="story-title">⏱️ Interactive Timer</div>
+          <div class="story-chat">
+            <span class="agent">Agent:</span> Workout ready! 3 rounds, 3 exercises:<br>
+            <span class="fn">→ sparkui.dev/s/qR7wYn</span><br><br>
+            <span class="cm">// Visual countdown with audio cues.</span><br>
+            <span class="cm">// Pause, skip, adjust on the fly.</span><br>
+            <span class="cm">// Agent gets results when you're done.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Story 3: Team Decisions -->
+      <div class="story fade-in d2">
+        <div class="story-before">
+          <div class="story-label">✗ Without SparkUI</div>
+          <div class="story-title">✅ Team Decisions</div>
+          <div class="story-chat">
+            <span class="agent">Agent:</span> Budget request: $15k for Q2 marketing.<br>
+            <span class="agent">Agent:</span> Details: Social media campaign based on Q1...<br>
+            <span class="agent">Agent:</span> Reply "approve", "reject", or "changes"<br>
+            <span class="user">User:</span> approve but can we reduce to 12k?<br>
+            <span class="agent">Agent:</span> I'll note that. Was that approve or changes?<br>
+            <span class="cm">// Ambiguous. No structured data. Lost in scroll.</span>
+          </div>
+        </div>
+        <div class="story-after">
+          <div class="story-label">✓ With SparkUI</div>
+          <div class="story-title">✅ One-Click Approval</div>
+          <div class="story-chat">
+            <span class="agent">Agent:</span> Budget approval needed:<br>
+            <span class="fn">→ sparkui.dev/s/aP3kLm</span><br><br>
+            <span class="cm">// Clean approval form with all details.</span><br>
+            <span class="cm">// Approve / Reject / Request Changes buttons.</span><br>
+            <span class="cm">// Comment field. Confirmation dialog.</span><br>
+            <span class="cm">// Structured response back to agent.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- DEMOS -->
-<section id="demos">
+<section id="demos" class="code-section">
   <div class="container">
     <div class="section-label">Live Demos</div>
     <h2 class="section-title">See it in action</h2>
@@ -243,62 +540,86 @@ footer{
         <span class="demo-icon">🍎</span>
         <h3>Macro Tracker</h3>
         <p>Daily nutrition tracking with calorie & macro progress bars, meal logging, and totals.</p>
-        <button class="demo-btn" onclick="launchDemo('macro-tracker',{date:'2026-03-14',calories:{current:1070,target:2000},protein:{current:70,target:150},fat:{current:42,target:70},carbs:{current:83,target:200},meals:[{name:'Breakfast',time:'7:00 AM',calories:420},{name:'Lunch',time:'12:00 PM',calories:650}]})">Launch Demo →</button>
+        <button class="demo-btn" onclick="launchDemo('macro-tracker',{date:'2026-03-15',calories:{current:1070,target:2000},protein:{current:70,target:150},fat:{current:42,target:70},carbs:{current:83,target:200},meals:[{name:'Breakfast',time:'7:00 AM',calories:420},{name:'Lunch',time:'12:00 PM',calories:650}]})">Launch Demo →</button>
       </div>
-      <div class="demo-card fade-in">
+      <div class="demo-card fade-in d1">
         <span class="demo-icon">💳</span>
         <h3>Checkout Flow</h3>
         <p>Secure ephemeral checkout with product details, quantity, promo codes, and payment form.</p>
         <button class="demo-btn" onclick="launchDemo('checkout',{product:{name:'SparkUI Pro',description:'Unlimited ephemeral UIs for your AI agents',price:29.99,image:'⚡'}})">Launch Demo →</button>
       </div>
-      <div class="demo-card fade-in">
+      <div class="demo-card fade-in d2">
         <span class="demo-icon">⏱️</span>
         <h3>Workout Timer</h3>
         <p>Interactive exercise timer with rounds, rest periods, exercise checklists, and audio cues.</p>
         <button class="demo-btn" onclick="launchDemo('workout-timer',{exercises:[{name:'Push-ups',duration:30,rest:15},{name:'Squats',duration:30,rest:15},{name:'Plank',duration:45,rest:20}],rounds:3})">Launch Demo →</button>
       </div>
-      <div class="demo-card fade-in">
+      <div class="demo-card fade-in d3">
         <span class="demo-icon">📋</span>
         <h3>Feedback Form</h3>
         <p>Multi-field form with star ratings, text inputs, selects, and real-time validation.</p>
         <button class="demo-btn" onclick="launchDemo('feedback-form',{fields:[{type:'rating',label:'Overall Experience',max:5},{type:'rating',label:'Ease of Use',max:5},{type:'text',label:'What did you like?',placeholder:'Tell us...'},{type:'select',label:'Would you recommend?',options:['Definitely','Probably','Not sure','No']}]})">Launch Demo →</button>
       </div>
-      <div class="demo-card fade-in">
+      <div class="demo-card fade-in d4">
         <span class="demo-icon">📊</span>
         <h3>Poll / Voting</h3>
         <p>Real-time polls with bar chart results, single or multi-select, and auto-close support.</p>
         <button class="demo-btn" onclick="launchDemo('poll',{question:'What framework do you prefer?',options:['React','Vue','Svelte','Angular','Solid'],multiSelect:false,showResults:true})">Launch Demo →</button>
       </div>
-      <div class="demo-card fade-in">
+      <div class="demo-card fade-in d5">
         <span class="demo-icon">🛒</span>
         <h3>Shopping List</h3>
         <p>Categorized, checkable shopping list with real-time sync and collaborative editing.</p>
         <button class="demo-btn" onclick="launchDemo('shopping-list',{title:'Weekly Groceries',items:[{category:'Produce',name:'Avocados',quantity:'3'},{category:'Produce',name:'Spinach',quantity:'1 bag'},{category:'Dairy',name:'Greek Yogurt',quantity:'2'},{category:'Meat',name:'Chicken Breast',quantity:'1 lb'},{category:'Bakery',name:'Sourdough Bread',quantity:'1 loaf'},{category:'Pantry',name:'Olive Oil',quantity:'1 bottle'}]})">Launch Demo →</button>
       </div>
-      <div class="demo-card fade-in">
+      <div class="demo-card fade-in d6">
         <span class="demo-icon">📅</span>
         <h3>Calendar</h3>
         <p>Day and week views with color-coded events, detail modals, and today highlighting.</p>
         <button class="demo-btn" onclick="launchDemo('calendar',{title:'My Schedule',view:'day',events:[{title:'Team Standup',start:new Date(new Date().setHours(9,0,0,0)).toISOString(),end:new Date(new Date().setHours(9,30,0,0)).toISOString(),category:'Meeting',location:'Zoom'},{title:'Lunch',start:new Date(new Date().setHours(12,0,0,0)).toISOString(),end:new Date(new Date().setHours(13,0,0,0)).toISOString(),category:'Personal'},{title:'Code Review',start:new Date(new Date().setHours(14,0,0,0)).toISOString(),end:new Date(new Date().setHours(15,0,0,0)).toISOString(),category:'Work'},{title:'Gym',start:new Date(new Date().setHours(17,0,0,0)).toISOString(),end:new Date(new Date().setHours(18,0,0,0)).toISOString(),category:'Health'}]})">Launch Demo →</button>
       </div>
-      <div class="demo-card fade-in">
+      <div class="demo-card fade-in d7">
         <span class="demo-icon">✅</span>
         <h3>Approval Flow</h3>
         <p>Request approval with approve/reject/changes buttons, comments, and confirmation dialogs.</p>
         <button class="demo-btn" onclick="launchDemo('approval-flow',{title:'Q2 Marketing Budget Increase',description:'Requesting additional budget for the Q2 social media campaign based on strong Q1 performance.',requester:'Sarah Chen',amount:'$15,000',urgency:'medium',details:[{label:'Department',value:'Marketing'},{label:'Timeline',value:'Apr 1 - Jun 30'},{label:'ROI Estimate',value:'3.2x'}]})">Launch Demo →</button>
       </div>
-      <div class="demo-card fade-in">
+      <div class="demo-card fade-in d8">
         <span class="demo-icon">⚖️</span>
         <h3>Comparison</h3>
         <p>Side-by-side product comparison with feature matrix, pros/cons, and selection.</p>
         <button class="demo-btn" onclick="launchDemo('comparison',{title:'Choose a Plan',items:[{name:'Starter',price:'$9/mo',rating:4,features:{'API Calls':'1,000/mo','Storage':'5 GB','Support':'Email'},pros:['Affordable','Easy setup'],cons:['Limited API calls']},{name:'Pro',price:'$29/mo',rating:4.5,recommended:true,features:{'API Calls':'50,000/mo','Storage':'100 GB','Support':'Priority'},pros:['Great value','Priority support'],cons:['No custom domain']},{name:'Enterprise',price:'$99/mo',rating:5,features:{'API Calls':'Unlimited','Storage':'1 TB','Support':'Dedicated'},pros:['Unlimited everything','SLA'],cons:['Higher cost']}],featureLabels:['API Calls','Storage','Support']})">Launch Demo →</button>
       </div>
     </div>
+
+    <!-- Inline code example for template composition -->
+    <div class="demo-code-inline fade-in">
+      <div class="section-label">Template Composition</div>
+      <p style="color:var(--text-dim);font-size:.92rem;margin-bottom:16px">Compose custom pages from 15+ built-in components — mix and match to build exactly what you need.</p>
+      <div class="code-block" style="margin-top:0">
+        <span class="code-lang">json</span>
+        <pre><span class="cm">// POST /api/push — compose multiple components</span>
+{
+  <span class="prop">"components"</span>: [
+    { <span class="prop">"type"</span>: <span class="str">"header"</span>, <span class="prop">"title"</span>: <span class="str">"Order #4821"</span> },
+    { <span class="prop">"type"</span>: <span class="str">"key-value"</span>, <span class="prop">"pairs"</span>: {
+        <span class="str">"Status"</span>: <span class="str">"Processing"</span>,
+        <span class="str">"ETA"</span>: <span class="str">"March 18"</span>
+    }},
+    { <span class="prop">"type"</span>: <span class="str">"progress"</span>, <span class="prop">"value"</span>: <span class="num">65</span>, <span class="prop">"label"</span>: <span class="str">"Fulfillment"</span> },
+    { <span class="prop">"type"</span>: <span class="str">"buttons"</span>, <span class="prop">"items"</span>: [
+        { <span class="str">"label"</span>: <span class="str">"Track Package"</span> },
+        { <span class="str">"label"</span>: <span class="str">"Contact Support"</span> }
+    ]}
+  ]
+}</pre>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- HOW IT WORKS -->
-<section class="how-it-works">
+<section class="how-it-works" id="how-it-works">
   <div class="container">
     <div class="section-label">How It Works</div>
     <h2 class="section-title">Three steps. Zero friction.</h2>
@@ -309,13 +630,13 @@ footer{
         <p>Your AI agent generates a page — pick a template or compose from 15 components — and pushes it via the REST API.</p>
         <span class="step-arrow">→</span>
       </div>
-      <div class="step fade-in">
+      <div class="step fade-in d1">
         <div class="step-num">👤</div>
         <h3>User clicks link</h3>
         <p>User gets a URL in chat. One click opens a polished, interactive page in their browser. No installs. No accounts.</p>
         <span class="step-arrow">→</span>
       </div>
-      <div class="step fade-in">
+      <div class="step fade-in d2">
         <div class="step-num">🔄</div>
         <h3>Results flow back</h3>
         <p>User actions stream back to the agent via WebSocket in real-time. The agent responds, adapts, and continues the conversation.</p>
@@ -327,7 +648,7 @@ footer{
 │             │ ───────────────────▶  │               │  ◀───────────── │             │
 │    Agent    │                       │    SparkUI    │                  │   Browser   │
 │  (AI/MCP)  │  ◀── WebSocket ─────  │    Server     │  ── WebSocket ▶ │   (User)    │
-│             │   completion events   │    :3457      │   user actions  │             │
+│             │   completion events   │               │   user actions  │             │
 └─────────────┘                       └───────────────┘                 └─────────────┘
       </pre>
     </div>
@@ -335,7 +656,7 @@ footer{
 </section>
 
 <!-- INTEGRATIONS -->
-<section>
+<section id="integrations">
   <div class="container">
     <div class="section-label">Integrate</div>
     <h2 class="section-title">Works with your stack</h2>
@@ -346,15 +667,102 @@ footer{
         <h3>OpenClaw Skill</h3>
         <p>Drop-in skill for OpenClaw agents. Your agent gets <code>sparkui_push</code> and <code>sparkui_compose</code> tools automatically.</p>
       </div>
-      <div class="int-card fade-in">
+      <div class="int-card fade-in d1">
         <span class="int-icon">🔌</span>
         <h3>MCP Server</h3>
         <p>Works with Claude Desktop, Cursor, and Windsurf. Standard MCP protocol — just add the server config.</p>
       </div>
-      <div class="int-card fade-in">
+      <div class="int-card fade-in d2">
         <span class="int-icon">🌐</span>
         <h3>REST API</h3>
         <p>Simple HTTP endpoints. Push templates, compose custom pages, manage lifecycle. Works with any language.</p>
+      </div>
+    </div>
+
+    <!-- Integration code examples -->
+    <div class="int-code-examples">
+      <div class="code-block fade-in" style="margin-top:0">
+        <span class="code-lang">OpenClaw Skill</span>
+        <pre><span class="cm">// In your SKILL.md — agent gets tools automatically</span>
+
+<span class="kw">## Tools</span>
+- <span class="fn">sparkui_push</span>: Push a template-based page
+  - template: <span class="str">"checkout"</span> | <span class="str">"poll"</span> | <span class="str">"feedback-form"</span> | ...
+  - data: template-specific JSON
+
+- <span class="fn">sparkui_compose</span>: Build custom pages
+  - components: array of UI components
+  - title: page title
+
+<span class="cm">// Agent usage:</span>
+<span class="str">"Create a poll asking the team about lunch"</span>
+→ Agent calls sparkui_push automatically</pre>
+      </div>
+      <div class="code-block fade-in d1" style="margin-top:0">
+        <span class="code-lang">MCP Config</span>
+        <pre><span class="cm">// claude_desktop_config.json</span>
+{
+  <span class="prop">"mcpServers"</span>: {
+    <span class="prop">"sparkui"</span>: {
+      <span class="prop">"command"</span>: <span class="str">"npx"</span>,
+      <span class="prop">"args"</span>: [
+        <span class="str">"@limeade-labs/sparkui"</span>,
+        <span class="str">"mcp"</span>
+      ],
+      <span class="prop">"env"</span>: {
+        <span class="prop">"SPARKUI_URL"</span>: <span class="str">"https://sparkui.dev"</span>,
+        <span class="prop">"SPARKUI_TOKEN"</span>: <span class="str">"spk_your_token"</span>
+      }
+    }
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARATIVE POSITIONING -->
+<section class="compare-section">
+  <div class="container">
+    <div class="section-label">Why SparkUI?</div>
+    <h2 class="section-title">Purpose-built for AI agent UIs</h2>
+    <p class="section-subtitle">Other approaches exist. None were designed for this.</p>
+    <div class="compare-grid">
+      <div class="compare-card fade-in">
+        <h4>Raw HTML Generation</h4>
+        <ul>
+          <li><span class="icon">⚠️</span> Slow — agent generates full markup</li>
+          <li><span class="icon">⚠️</span> Security risks (XSS, injection)</li>
+          <li><span class="icon">⚠️</span> No real-time data flow back</li>
+          <li><span class="icon">⚠️</span> Pages persist indefinitely</li>
+        </ul>
+      </div>
+      <div class="compare-card fade-in d1">
+        <h4>Native Apps</h4>
+        <ul>
+          <li><span class="icon">⚠️</span> Requires download & install</li>
+          <li><span class="icon">⚠️</span> App store approval delays</li>
+          <li><span class="icon">⚠️</span> Heavy for one-off interactions</li>
+          <li><span class="icon">⚠️</span> Platform-specific builds</li>
+        </ul>
+      </div>
+      <div class="compare-card fade-in d2">
+        <h4>Web Frameworks</h4>
+        <ul>
+          <li><span class="icon">⚠️</span> Requires developer setup</li>
+          <li><span class="icon">⚠️</span> No agent integration built-in</li>
+          <li><span class="icon">⚠️</span> Overkill for ephemeral UIs</li>
+          <li><span class="icon">⚠️</span> Persistent infrastructure needed</li>
+        </ul>
+      </div>
+      <div class="compare-card highlight fade-in d3">
+        <h4>SparkUI</h4>
+        <ul>
+          <li><span class="icon">✓</span> One API call → full interactive UI</li>
+          <li><span class="icon">✓</span> Secure by default, sandboxed</li>
+          <li><span class="icon">✓</span> Real-time WebSocket data flow</li>
+          <li><span class="icon">✓</span> Self-destructing, zero cleanup</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -368,7 +776,7 @@ footer{
     <p class="section-subtitle">Push an interactive page in a single API call.</p>
     <div class="code-block fade-in">
       <span class="code-lang">bash</span>
-      <pre><span class="fn">curl</span> <span class="str">-X POST</span> https://your-server/api/push \
+      <pre><span class="fn">curl</span> <span class="str">-X POST</span> https://sparkui.dev/api/push \
   <span class="str">-H</span> <span class="str">"Authorization: Bearer YOUR_TOKEN"</span> \
   <span class="str">-H</span> <span class="str">"Content-Type: application/json"</span> \
   <span class="str">-d</span> <span class="str">'{
@@ -384,6 +792,69 @@ footer{
 
 <span class="cm"># → { "url": "/s/abc123", "expiresAt": "..." }</span></pre>
     </div>
+    <div class="code-block fade-in d1">
+      <span class="code-lang">javascript</span>
+      <pre><span class="cm">// Node.js — push + listen for results</span>
+<span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://sparkui.dev/api/push'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: {
+    <span class="str">'Authorization'</span>: <span class="str">`Bearer ${token}`</span>,
+    <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>
+  },
+  body: <span class="fn">JSON.stringify</span>({
+    template: <span class="str">'feedback-form'</span>,
+    data: { fields: [
+      { type: <span class="str">'rating'</span>, label: <span class="str">'Experience'</span>, max: <span class="num">5</span> },
+      { type: <span class="str">'text'</span>, label: <span class="str">'Comments'</span> }
+    ]}
+  })
+});
+
+<span class="kw">const</span> { url, pageId } = <span class="kw">await</span> res.<span class="fn">json</span>();
+<span class="cm">// Connect WebSocket to receive user submissions</span>
+<span class="kw">const</span> ws = <span class="kw">new</span> <span class="fn">WebSocket</span>(<span class="str">`wss://sparkui.dev/ws/${pageId}`</span>);
+ws.<span class="fn">on</span>(<span class="str">'message'</span>, (data) => <span class="fn">console.log</span>(<span class="str">'User submitted:'</span>, data));</pre>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST / SOCIAL PROOF -->
+<section class="trust-section">
+  <div class="container">
+    <div class="section-label">Open Source</div>
+    <h2 class="section-title">Built in the open. Built to last.</h2>
+    <div class="trust-grid">
+      <div class="trust-stat fade-in">
+        <span class="num">11</span>
+        <span class="label">Templates</span>
+      </div>
+      <div class="trust-stat fade-in d1">
+        <span class="num">15+</span>
+        <span class="label">Components</span>
+      </div>
+      <div class="trust-stat fade-in d2">
+        <span class="num">3</span>
+        <span class="label">Integrations</span>
+      </div>
+      <div class="trust-stat fade-in d3">
+        <span class="num">MIT</span>
+        <span class="label">Licensed</span>
+      </div>
+    </div>
+    <div class="trust-details fade-in">
+      <div class="trust-detail">
+        <span>🧪</span>
+        <span>Built by <strong><a href="https://limeadelabs.com" target="_blank">Limeade Labs</a></strong> — building developer tools for the agentic era</span>
+      </div>
+      <div class="trust-detail">
+        <span>📦</span>
+        <span><strong><a href="https://www.npmjs.com/package/@limeade-labs/sparkui" target="_blank">@limeade-labs/sparkui</a></strong> on npm</span>
+      </div>
+      <div class="trust-detail">
+        <span>⭐</span>
+        <span><strong><a href="https://github.com/limeade-labs/sparkui" target="_blank">Star on GitHub</a></strong> — contributions welcome</span>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -392,22 +863,44 @@ footer{
   <div class="container">
     <div class="footer-links">
       <a href="https://github.com/limeade-labs/sparkui" target="_blank">GitHub</a>
-      <a href="https://www.npmjs.com/package/sparkui" target="_blank">npm</a>
+      <a href="https://www.npmjs.com/package/@limeade-labs/sparkui" target="_blank">npm</a>
       <a href="https://github.com/limeade-labs/sparkui#readme" target="_blank">Docs</a>
       <a href="https://github.com/limeade-labs/sparkui/blob/main/LICENSE" target="_blank">MIT License</a>
     </div>
-    <p class="footer-meta">Built by <a href="https://limeadelabs.com" target="_blank">Limeade Labs</a> · Built <span>with</span> SparkUI ⚡</p>
+    <p class="footer-meta">Built by <a href="https://limeadelabs.com" target="_blank">Limeade Labs</a> · Made <span>with</span> SparkUI ⚡</p>
   </div>
 </footer>
 
 <script>
-// Intersection Observer for fade-in animations
+// Sticky nav scroll behavior
+const navbar = document.getElementById('navbar');
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 60);
+  lastScroll = window.scrollY;
+}, { passive: true });
+
+// Close mobile nav on link click
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => document.querySelector('.nav-links').classList.remove('open'));
+});
+
+// Intersection Observer for staggered fade-in animations
 const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
-}, { threshold: 0.15 });
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
 document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
 // Demo launcher
+// NOTE: Push token is intentionally exposed here — these are public demo pages
+const SPARKUI_TOKEN = 'spk_475a1887afe39139eaf21f20cd5af85f019ed4c8910fcbef';
+const SPARKUI_BASE = 'https://sparkui.dev';
+
 async function launchDemo(template, data) {
   const btn = event.currentTarget;
   const originalText = btn.textContent;
@@ -415,10 +908,10 @@ async function launchDemo(template, data) {
   btn.textContent = 'Generating…';
   
   try {
-    const res = await fetch('https://sparkui.limeadelabs.dev/api/push', {
+    const res = await fetch(`${SPARKUI_BASE}/api/push`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer spk_475a1887afe39139eaf21f20cd5af85f019ed4c8910fcbef',
+        'Authorization': `Bearer ${SPARKUI_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ template, data })
@@ -426,7 +919,7 @@ async function launchDemo(template, data) {
     
     if (!res.ok) throw new Error('Push failed');
     const result = await res.json();
-    const url = result.fullUrl || ('https://sparkui.limeadelabs.dev' + result.url);
+    const url = result.fullUrl || (SPARKUI_BASE + result.url);
     window.open(url, '_blank');
   } catch (err) {
     console.error('Demo error:', err);

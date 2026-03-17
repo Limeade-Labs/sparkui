@@ -89,9 +89,79 @@ The push API returns `{ id, url, fullUrl }`. Share the `fullUrl` with the user.
 | Template | Description | Data Shape |
 |----------|-------------|------------|
 | `macro-tracker` | Nutrition macro dashboard | `{date, calories, protein, fat, carbs, meals}` — each macro has `{current, target}`, meals is `[{name, calories, time}]` |
+| `workout-timer` | Interactive workout with rounds, timers, checklists | See Workout Timer section below |
 | `feedback-form` | Rating + text feedback form | `{title, subtitle?, questions?}` — questions is optional `string[]` for extra text fields |
+| `poll` | Voting/polling | `{question, options: [{text}]}` |
+| `shopping-list` | Checkable shopping list | `{title, items: [{text, category?}]}` |
+| `calendar` | Calendar/schedule view | `{title, events: [{date, title, time?}]}` |
+| `comparison` | Side-by-side comparison | `{title, items: [{name, attributes: [{label, value}]}]}` |
+| `checkout` | Stripe-style checkout form | `{title, items: [{name, price}], currency?}` |
+| `approval-flow` | Approve/reject workflow | `{title, description, options?: [{label, action}]}` |
+| `analytics-dashboard` | Charts and metrics | `{title, metrics: [{label, value, unit?}], charts?: [...]}` |
+
+### Workout Timer Template
+
+The `workout-timer` template supports interactive workouts with rounds, rest timers, warmup/cooldown checklists, and **granular event emission**.
+
+**Data shape:**
+```json
+{
+  "title": "Morning Kettlebell",
+  "exercises": [
+    {"name": "KB Swings", "reps": "15"},
+    {"name": "Goblet Squats", "reps": "10"},
+    {"name": "KB Rows", "reps": "8 each side"}
+  ],
+  "rounds": 3,
+  "restSeconds": 60,
+  "warmup": [
+    {"text": "Arm circles (30s)"},
+    {"text": "Leg swings (30s)"}
+  ],
+  "cooldown": [
+    {"text": "Hamstring stretch (30s each)"},
+    {"text": "Shoulder stretch (30s each)"}
+  ]
+}
+```
+
+**Events emitted (when `openclaw.eventTypes` includes `"event"`):**
+- `exercise_started` — `{ exercise, setIndex }`
+- `set_completed` — `{ exercise, setNumber, totalSets, reps, duration }`
+- `rest_started` — `{ exercise, duration }`
+- `exercise_completed` — `{ exercise, setsCompleted, totalSets }`
+- `workout_completed` — `{ totalExercises, totalSets, totalDuration, exercises: [...] }`
+
+**State persistence:** Workout progress (current round, checked items, completed sets) auto-saves. If the user closes the tab and reopens, progress is restored.
+
+**⚠️ IMPORTANT:** Always push workout pages with `openclaw` config to enable the round-trip:
+```json
+{
+  "template": "workout-timer",
+  "data": { ... },
+  "openclaw": {
+    "enabled": true,
+    "eventTypes": ["event", "completion"]
+  }
+}
+```
+
+## State Persistence
+
+SparkUI pages can save and restore state across tab closes. This is critical for any multi-step interaction (workouts, shopping lists, forms).
+
+**How it works:**
+- Client-side JS calls `window.sparkui.saveState(state)` — debounced, saves via WebSocket
+- On page reload, `window.sparkui.loadState()` fetches saved state from the server
+- State is tied to the page ID and expires with the page TTL
+
+**Templates that use state persistence:** `workout-timer` (saves round progress, checked items, elapsed time)
+
+**For compose pages:** The checklist component auto-persists checked items. Other components may not persist state by default.
 
 ## OpenClaw Round-Trip (Event Callbacks)
+
+**⚠️ ALWAYS include `openclaw` config when pushing interactive pages.** Without it, user interactions stay in the browser and never reach the agent. This is the difference between a static page and an interactive one.
 
 When you want SparkUI to report user interactions back to the agent via OpenClaw webhooks, add `openclaw` config to the push request. This closes the loop: **agent pushes page → user interacts → agent gets notified**.
 

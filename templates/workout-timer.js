@@ -317,8 +317,100 @@ ${cooldown.length > 0 ? `
   var warmupCount = ${warmup.length};
   var cooldownCount = ${cooldown.length};
   var totalExercises = ${totalExercises};
-  var checkedItems = { warmup: {}, cooldown: {} };
   var workoutTitle = ${JSON.stringify(title)};
+  var exerciseData = ${JSON.stringify(exercises.map(function(ex) { return { name: ex.name, reps: ex.reps, notes: ex.notes || '' }; }))};
+  var currentExerciseIdx = 0; // track which exercise in current round
+  var roundSetStartTime = null; // when current set/exercise started
+  var completedSets = []; // track all completed sets for summary
+
+  // ── Event Emission ──
+  function emitEvent(eventType, data) {
+    if (window.sparkui) {
+      window.sparkui.send('event', Object.assign({ eventType: eventType }, data));
+    }
+  }
+
+  // ── State Persistence ──
+  function persistState() {
+    if (!window.sparkui || !window.sparkui.saveState) return;
+    var warmupChecked = [];
+    document.querySelectorAll('[data-group="warmup"].checked').forEach(function(el) {
+      warmupChecked.push(parseInt(el.getAttribute('data-idx')));
+    });
+    var cooldownChecked = [];
+    document.querySelectorAll('[data-group="cooldown"].checked').forEach(function(el) {
+      cooldownChecked.push(parseInt(el.getAttribute('data-idx')));
+    });
+    window.sparkui.saveState({
+      currentRound: currentRound,
+      currentExerciseIdx: currentExerciseIdx,
+      elapsedSeconds: elapsedSeconds,
+      startTime: startTime,
+      warmupChecked: warmupChecked,
+      cooldownChecked: cooldownChecked,
+      completedSets: completedSets,
+      savedAt: Date.now()
+    });
+  }
+
+  function restoreState(state) {
+    if (!state) return;
+    currentRound = state.currentRound || 0;
+    currentExerciseIdx = state.currentExerciseIdx || 0;
+    completedSets = state.completedSets || [];
+
+    // Restore elapsed time
+    if (state.elapsedSeconds > 0) {
+      elapsedSeconds = state.elapsedSeconds;
+      document.getElementById('wt_elapsed').textContent = fmtT(elapsedSeconds);
+      // Resume elapsed timer from where we left off
+      startTime = Date.now() - (elapsedSeconds * 1000);
+      startElapsedFromRestore();
+    }
+
+    // Restore round dots
+    updateRoundDots();
+
+    // Restore warmup checkmarks
+    if (state.warmupChecked) {
+      state.warmupChecked.forEach(function(idx) {
+        var el = document.querySelector('[data-group="warmup"][data-idx="' + idx + '"]');
+        if (el) el.classList.add('checked');
+      });
+    }
+
+    // Restore cooldown checkmarks
+    if (state.cooldownChecked) {
+      state.cooldownChecked.forEach(function(idx) {
+        var el = document.querySelector('[data-group="cooldown"][data-idx="' + idx + '"]');
+        if (el) el.classList.add('checked');
+      });
+    }
+
+    // If all rounds done, show cooldown/complete
+    if (currentRound >= totalRounds) {
+      document.getElementById('wt_round_controls').style.display = 'none';
+      document.getElementById('wt_rest_panel').className = 'wt-rest-panel';
+      var cd = document.getElementById('wt_cooldown');
+      if (cd) cd.style.display = 'block';
+      document.getElementById('wt_complete_section').style.display = 'block';
+    } else {
+      // Update button text
+      var btn = document.getElementById('wt_next_round');
+      if (currentRound >= totalRounds - 1) {
+        btn.textContent = 'Complete Final Round';
+      }
+    }
+  }
+
+  function startElapsedFromRestore() {
+    if (elapsedTimer) return;
+    var el = document.getElementById('wt_elapsed');
+    elapsedTimer = setInterval(function() {
+      elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      el.textContent = fmtT(elapsedSeconds);
+    }, 1000);
+  }
 
   // ── Elapsed timer ──
   function startElapsed() {
@@ -343,6 +435,7 @@ ${cooldown.length > 0 ? `
   window.wtToggleCheck = function(el) {
     startElapsed();
     el.classList.toggle('checked');
+    persistState();
   };
 
   // ── Round management ──
@@ -363,8 +456,37 @@ ${cooldown.length > 0 ? `
 
   window.wtNextRound = function() {
     startElapsed();
+
+    // Emit set_completed for each exercise in the round
+    var setDuration = roundSetStartTime ? Math.floor((Date.now() - roundSetStartTime) / 1000) : 0;
+    for (var i = 0; i < exerciseCount; i++) {
+      var ex = exerciseData[i];
+      var setRecord = {
+        exercise: ex.name,
+        setNumber: currentRound + 1,
+        totalSets: totalRounds,
+        reps: ex.reps,
+        duration: setDuration
+      };
+      completedSets.push(setRecord);
+      emitEvent('set_completed', setRecord);
+    }
+
+    // Emit exercise_completed for each exercise if this was the last round for it
+    // (In round-based workouts, each exercise completes after all rounds)
     currentRound++;
+    if (currentRound >= totalRounds) {
+      for (var j = 0; j < exerciseCount; j++) {
+        emitEvent('exercise_completed', {
+          exercise: exerciseData[j].name,
+          setsCompleted: totalRounds,
+          totalSets: totalRounds
+        });
+      }
+    }
+
     updateRoundDots();
+    persistState();
 
     if (currentRound >= totalRounds) {
       // All rounds done — show cooldown or complete
@@ -379,6 +501,18 @@ ${cooldown.length > 0 ? `
       document.getElementById('wt_complete_section').style.animation = 'wtFadeIn 0.3s ease';
       return;
     }
+
+    // Emit rest_started
+    emitEvent('rest_started', {
+      exercise: 'Round ' + currentRound + ' complete',
+      duration: restDuration
+    });
+
+    // Emit exercise_started for next round
+    emitEvent('exercise_started', {
+      exercise: exerciseData[0] ? exerciseData[0].name : 'Exercise',
+      setIndex: currentRound
+    });
 
     // Show rest timer
     startRest();
@@ -423,6 +557,7 @@ ${cooldown.length > 0 ? `
   function endRest() {
     var panel = document.getElementById('wt_rest_panel');
     panel.className = 'wt-rest-panel';
+    roundSetStartTime = Date.now();
 
     // Update button text for next round
     var btn = document.getElementById('wt_next_round');
@@ -448,15 +583,34 @@ ${cooldown.length > 0 ? `
 
     var warmupChecked = document.querySelectorAll('[data-group="warmup"].checked').length;
     var cooldownChecked = document.querySelectorAll('[data-group="cooldown"].checked').length;
-    var exercisesChecked = (currentRound * exerciseCount) + warmupChecked + cooldownChecked;
+
+    // Build exercise summary
+    var exerciseSummary = exerciseData.map(function(ex) {
+      var sets = completedSets.filter(function(s) { return s.exercise === ex.name; });
+      return {
+        name: ex.name,
+        setsCompleted: sets.length,
+        totalSets: totalRounds,
+        reps: ex.reps
+      };
+    });
+
+    // Emit workout_completed event
+    emitEvent('workout_completed', {
+      totalExercises: exerciseCount,
+      totalSets: completedSets.length,
+      totalDuration: elapsedSeconds,
+      exercises: exerciseSummary
+    });
 
     var payload = {
       action: 'workout_complete',
       title: workoutTitle,
       roundsCompleted: currentRound,
-      exercisesChecked: exercisesChecked,
-      totalExercises: totalExercises,
+      totalExercises: exerciseCount,
+      totalSets: completedSets.length,
       duration: elapsedSeconds,
+      exercises: exerciseSummary,
       completedAt: new Date().toISOString()
     };
 
@@ -471,13 +625,37 @@ ${cooldown.length > 0 ? `
     if (window.sparkui) {
       window.sparkui.send('completion', payload);
     }
+
+    persistState();
   };
 
   // ── Init ──
   updateRoundDots();
+  roundSetStartTime = Date.now();
   var nextBtn = document.getElementById('wt_next_round');
   if (totalRounds <= 1) {
     nextBtn.textContent = 'Complete Final Round';
+  }
+
+  // Emit exercise_started for the first exercise
+  if (exerciseData.length > 0) {
+    emitEvent('exercise_started', {
+      exercise: exerciseData[0].name,
+      setIndex: 0
+    });
+  }
+
+  // Load saved state on page open
+  if (window.sparkui && window.sparkui.onStateLoaded) {
+    window.sparkui.onStateLoaded(function(state) {
+      if (state) restoreState(state);
+    });
+    // Request state load after WS connects
+    setTimeout(function() {
+      if (window.sparkui && window.sparkui.loadState) {
+        window.sparkui.loadState();
+      }
+    }, 1000);
   }
 })();
 </script>`;
