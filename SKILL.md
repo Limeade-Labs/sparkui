@@ -160,9 +160,9 @@ Interactive templates auto-enable OpenClaw forwarding for `completion` events. T
 3. On completion → delivery worker POSTs to OpenClaw hooks with guaranteed delivery (retry + dead-letter)
 4. Agent receives structured JSON and can act on it
 
-### ⚠️ Routing: Always Include `sessionKey` for Slack
+### ⚠️ Routing: Always Include `to` for Slack
 
-On Slack (multi-channel), completions need routing info to reach the right session. **Always include `sessionKey`** when pushing interactive pages:
+On Slack (multi-channel), completions need routing info to reach the right channel. **Always include `to` with the channel ID** when pushing interactive pages:
 
 ```bash
 curl -s -X POST http://localhost:3457/api/push \
@@ -173,13 +173,16 @@ curl -s -X POST http://localhost:3457/api/push \
     "data": { ... },
     "openclaw": {
       "enabled": true,
-      "sessionKey": "agent:main:slack:C0AKMF5E0KD",
+      "channel": "slack",
+      "to": "C0AKMF5E0KD",
       "eventTypes": ["completion"]
     }
   }'
 ```
 
-On Telegram or single-channel setups, routing is automatic — no `sessionKey` needed.
+**Note:** `sessionKey` requires `hooks.allowRequestSessionKey=true` in OpenClaw config. Use `to` (channel ID) instead — it works out of the box.
+
+On Telegram or single-channel setups, routing is automatic — no `to` needed.
 
 ### OpenClaw Config Fields
 
