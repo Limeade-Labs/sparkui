@@ -44,6 +44,23 @@ function workoutTimer(data) {
 
   const body = `
 <style>
+  /* Loading overlay for state restore */
+  .wt-loading-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: #111; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px;
+    transition: opacity 0.3s ease;
+  }
+  .wt-loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .wt-loading-spinner {
+    width: 32px; height: 32px; border: 3px solid #333;
+    border-top-color: ${accentColor}; border-radius: 50%;
+    animation: wtSpin 0.8s linear infinite;
+  }
+  .wt-loading-text { color: #888; font-size: 0.85rem; }
+  @keyframes wtSpin { to { transform: rotate(360deg); } }
+
   .wt-header { margin-bottom: 20px; }
   .wt-header h1 {
     font-size: 1.6rem; font-weight: 800; color: #e0e0e0; margin: 0; line-height: 1.3;
@@ -198,6 +215,21 @@ function workoutTimer(data) {
     .wt-rest-display { font-size: 2.8rem; }
   }
 </style>
+
+<!-- Loading Overlay (shown only when restoring saved state) -->
+<div class="wt-loading-overlay" id="wt_loading_overlay" style="display:none">
+  <div class="wt-loading-spinner"></div>
+  <div class="wt-loading-text">Restoring your progress...</div>
+</div>
+<script>
+// Show overlay immediately if there's saved state to restore
+try {
+  var _lsKey = 'sparkui_state_' + ${JSON.stringify(_pageId)};
+  if (localStorage.getItem(_lsKey)) {
+    document.getElementById('wt_loading_overlay').style.display = 'flex';
+  }
+} catch(e) {}
+</script>
 
 <!-- Header -->
 <div class="wt-header">
@@ -645,18 +677,46 @@ ${cooldown.length > 0 ? `
     });
   }
 
-  // Load saved state on page open
+  // ── State Restore (instant from localStorage, confirmed from REST) ──
+  var stateRestored = false;
+
+  function doRestore(state) {
+    if (!state || stateRestored) return;
+    stateRestored = true;
+    restoreState(state);
+    // Remove loading overlay if present
+    var overlay = document.getElementById('wt_loading_overlay');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  // Try localStorage immediately (no delay)
+  try {
+    var lsKey = 'sparkui_state_' + ${JSON.stringify(_pageId)};
+    var raw = localStorage.getItem(lsKey);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.data) {
+        doRestore(parsed.data);
+      }
+    }
+  } catch(e) {}
+
+  // Then confirm from REST (sparkui.loadState handles the REST call)
   if (window.sparkui && window.sparkui.onStateLoaded) {
     window.sparkui.onStateLoaded(function(state) {
-      if (state) restoreState(state);
+      if (state) doRestore(state);
     });
-    // Request state load after WS connects
-    setTimeout(function() {
-      if (window.sparkui && window.sparkui.loadState) {
-        window.sparkui.loadState();
-      }
-    }, 1000);
+    // Load immediately — no setTimeout delay
+    if (window.sparkui && window.sparkui.loadState) {
+      window.sparkui.loadState();
+    }
   }
+
+  // Safety: remove overlay after 2s even if no state found
+  setTimeout(function() {
+    var overlay = document.getElementById('wt_loading_overlay');
+    if (overlay) overlay.style.display = 'none';
+  }, 2000);
 })();
 </script>`;
 
