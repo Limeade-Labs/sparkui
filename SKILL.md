@@ -134,80 +134,116 @@ The `workout-timer` template supports interactive workouts with rounds, rest tim
 
 **State persistence:** Workout progress (current round, checked items, completed sets) auto-saves. If the user closes the tab and reopens, progress is restored.
 
-**⚠️ IMPORTANT:** Always push workout pages with `openclaw` config to enable the round-trip:
-```json
-{
-  "template": "workout-timer",
-  "data": { ... },
-  "openclaw": {
-    "enabled": true,
-    "eventTypes": ["event", "completion"]
-  }
-}
-```
+**Note:** Interactive templates (workout-timer, feedback-form, poll, approval-flow, checkout, shopping-list) auto-enable `openclaw` with `eventTypes: ["completion"]`. You only need to explicitly set `openclaw` if you want to override the defaults (e.g., add a `sessionKey` for routing, or include `"event"` types for granular tracking).
 
-## State Persistence
+## State Persistence (v1.1 — Redis-backed)
 
-SparkUI pages can save and restore state across tab closes. This is critical for any multi-step interaction (workouts, shopping lists, forms).
+SparkUI pages persist state across tab closes, page refreshes, and even server restarts.
 
-**How it works:**
-- Client-side JS calls `window.sparkui.saveState(state)` — debounced, saves via WebSocket
-- On page reload, `window.sparkui.loadState()` fetches saved state from the server
-- State is tied to the page ID and expires with the page TTL
+**How it works (layered):**
+1. **localStorage** — instant write-through cache in the browser. State restores in <100ms on page reopen.
+2. **REST API** — primary server-side persistence via `POST/GET /api/pages/:id/state`. Works without WebSocket.
+3. **Redis** — server-side source of truth. Survives server restarts. TTL-managed (expires with the page).
+4. **WebSocket** — bonus real-time sync for multi-tab scenarios.
 
-**Templates that use state persistence:** `workout-timer` (saves round progress, checked items, elapsed time)
+**On page load:** localStorage first (instant) → REST fetch (confirms) → uses whichever is available.
+**On state change:** localStorage write (instant) → debounced REST POST → WS sync (bonus).
 
-**For compose pages:** The checklist component auto-persists checked items. Other components may not persist state by default.
+**Templates that use state persistence:** `workout-timer` (round progress, checked items, elapsed time, completed sets)
 
 ## OpenClaw Round-Trip (Event Callbacks)
 
-**⚠️ ALWAYS include `openclaw` config when pushing interactive pages.** Without it, user interactions stay in the browser and never reach the agent. This is the difference between a static page and an interactive one.
+Interactive templates auto-enable OpenClaw forwarding for `completion` events. The flow:
 
-When you want SparkUI to report user interactions back to the agent via OpenClaw webhooks, add `openclaw` config to the push request. This closes the loop: **agent pushes page → user interacts → agent gets notified**.
+1. Agent pushes a page (openclaw auto-enabled for interactive templates)
+2. User interacts → events stored in Redis event stream
+3. On completion → delivery worker POSTs to OpenClaw hooks with guaranteed delivery (retry + dead-letter)
+4. Agent receives structured JSON and can act on it
 
-### Push with OpenClaw Config
+### ⚠️ Routing: Always Include `sessionKey` for Slack
+
+On Slack (multi-channel), completions need routing info to reach the right session. **Always include `sessionKey`** when pushing interactive pages:
 
 ```bash
 curl -s -X POST http://localhost:3457/api/push \
   -H "Authorization: Bearer $PUSH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "template": "feedback-form",
-    "data": {"title": "Quick Feedback", "subtitle": "How was the experience?"},
+    "template": "workout-timer",
+    "data": { ... },
     "openclaw": {
       "enabled": true,
-      "channel": "slack",
-      "to": "YOUR_CHANNEL_ID",
+      "sessionKey": "agent:main:slack:C0AKMF5E0KD",
       "eventTypes": ["completion"]
     }
   }'
 ```
 
+On Telegram or single-channel setups, routing is automatic — no `sessionKey` needed.
+
 ### OpenClaw Config Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `enabled` | boolean | yes | Enable OpenClaw forwarding |
-| `channel` | string | no | Delivery channel (default: "slack") |
-| `to` | string | no | Target channel/user ID (e.g., "YOUR_CHANNEL_ID" for #sparkui) |
-| `eventTypes` | string[] | no | Which events to forward: `["completion"]`, `["event"]`, or `["event", "completion"]`. Default: `["completion"]` |
-| `sessionKey` | string | no | Optional session key override for routing |
+| `enabled` | boolean | auto | Enable OpenClaw forwarding (auto-true for interactive templates) |
+| `sessionKey` | string | recommended | Route completions back to the agent session that created the page |
+| `channel` | string | no | Delivery channel override (default: "slack") |
+| `to` | string | no | Target channel/user ID (alternative to sessionKey) |
+| `eventTypes` | string[] | no | `["completion"]` (default), `["event"]`, or `["event", "completion"]`. **Avoid `"event"` unless you need granular tracking** — it fires for every micro-interaction |
 
-### How It Works
+### Completion Message Format
 
-1. Agent pushes a page with `openclaw` config
-2. User opens the page and interacts (clicks, submits form)
-3. Browser sends events via WebSocket to SparkUI server
-4. SparkUI server checks `openclaw` config and forwards matching events to OpenClaw's `/hooks/agent` endpoint
-5. OpenClaw delivers the message to the specified channel
-6. Agent receives the message and can respond
+Completions arrive as structured JSON:
+```json
+{
+  "_sparkui": true,
+  "type": "completion",
+  "pageId": "uuid",
+  "template": "workout-timer",
+  "title": "Morning Workout",
+  "data": { ... },
+  "timestamp": 1234567890
+}
+```
 
-### When to Use OpenClaw Round-Trip
+Process these **silently** — don't echo raw event data to the user. Extract what matters and post a clean summary.
 
-- **Feedback forms** — get notified when user submits
-- **Approval workflows** — user clicks approve/reject
-- **Interactive quizzes** — collect answers
-- **Any form** — completion events carry all form data
+### Agent Push API (Bidirectional)
+
+Push updates to a live page while the user is on it:
+
+```bash
+# Toast notification
+curl -s -X POST http://localhost:3457/api/pages/PAGE_ID/push \
+  -H "Authorization: Bearer $PUSH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "toast", "data": {"message": "Great job! Keep going 💪"}}'
+
+# Replace a DOM element by ID
+curl -s -X POST http://localhost:3457/api/pages/PAGE_ID/push \
+  -H "Authorization: Bearer $PUSH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "slot", "data": {"id": "status_badge", "html": "<span>Approved ✓</span>"}}'
+
+# Force page reload
+curl -s -X POST http://localhost:3457/api/pages/PAGE_ID/push \
+  -H "Authorization: Bearer $PUSH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "reload"}'
+```
+
+### Event Query API (Agent Polling)
+
+If hooks delivery fails or for on-demand checks:
+```bash
+# Get all events for a page
+curl -s http://localhost:3457/api/pages/PAGE_ID/events \
+  -H "Authorization: Bearer $PUSH_TOKEN"
+
+# Filter by type and time
+curl -s "http://localhost:3457/api/pages/PAGE_ID/events?type=completion&since=1234567890" \
+  -H "Authorization: Bearer $PUSH_TOKEN"
+```
 
 ### Environment Variables
 
