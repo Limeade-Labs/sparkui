@@ -13,11 +13,13 @@ SparkUI lets AI agents generate interactive web UIs on demand. Instead of walls 
 
 - 🎯 **No app install** — just a URL that works in any browser
 - ⏱️ **Ephemeral** — pages auto-expire (default 1 hour)
-- 🔄 **Bidirectional** — user actions flow back to the agent via WebSocket
+- 🔄 **Bidirectional** — user actions flow back to the agent in real-time
+- 💾 **Persistent state** — Redis-backed, survives tab closes and server restarts
 - 🧩 **Composable** — 15 components you can mix and match
 - 📱 **Mobile-first** — designed for phones, works everywhere
 - 🔌 **MCP compatible** — works with Claude Desktop, Cursor, Windsurf
 - 🌙 **Dark theme** — easy on the eyes, polished look
+- 📡 **Agent push** — send toasts, update content, and reload pages from the server side
 
 ## Quick Start
 
@@ -30,6 +32,9 @@ npm install
 # Configure
 cp .env.example .env
 # Edit .env — set your PUSH_TOKEN
+
+# Ensure Redis is running (required for state persistence)
+redis-cli ping  # Should return PONG
 
 # Run
 npm start
@@ -164,23 +169,99 @@ DELETE /api/pages/:id
 
 All endpoints require `Authorization: Bearer <token>`.
 
+## State Persistence (v1.1)
+
+Pages persist state across tab closes, page refreshes, and server restarts using a layered approach:
+
+- **localStorage** — instant write-through cache in the browser (<100ms restore)
+- **REST API** — `POST/GET /api/pages/:id/state` for server-side persistence
+- **Redis** — source of truth, TTL-managed, survives server restarts
+- **WebSocket** — real-time sync for multi-tab scenarios
+
+Templates like `workout-timer` automatically save and restore progress. Users can close the tab mid-workout, reopen the same URL, and pick up exactly where they left off.
+
+## Event Delivery & Agent Push (v1.1)
+
+### Guaranteed Event Delivery
+
+User interactions are recorded in Redis Streams and delivered to the agent via a retry-capable delivery worker:
+
+- Events queue in Redis Streams (survives restarts)
+- Delivery worker POSTs to OpenClaw hooks or callback URLs
+- Exponential backoff retries (5 attempts before dead-letter)
+- No silent event loss
+
+```bash
+# Include openclaw config for event callbacks
+curl -X POST http://localhost:3457/api/push \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template": "feedback-form",
+    "data": { "title": "Quick Feedback" },
+    "openclaw": {
+      "enabled": true,
+      "channel": "slack",
+      "to": "YOUR_CHANNEL_ID",
+      "eventTypes": ["completion"]
+    }
+  }'
+```
+
+Interactive templates (`workout-timer`, `feedback-form`, `poll`, `approval-flow`, `checkout`, `shopping-list`) auto-enable completion callbacks.
+
+### Agent Push API
+
+Push updates to a user's open page in real-time:
+
+```bash
+# Toast notification
+curl -X POST http://localhost:3457/api/pages/PAGE_ID/push \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "toast", "data": {"message": "Great job! 💪"}}'
+
+# Replace DOM element content
+curl -X POST http://localhost:3457/api/pages/PAGE_ID/push \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "slot", "data": {"id": "status", "html": "<span>Approved ✅</span>"}}'
+
+# Force page reload
+curl -X POST http://localhost:3457/api/pages/PAGE_ID/push \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "reload"}'
+```
+
+### Event Query API
+
+Query a page's event history:
+
+```bash
+GET /api/pages/:id/events
+GET /api/pages/:id/events?type=completion&since=1234567890
+```
+
 ## Architecture
 
 ```
 ┌─────────┐     POST /api/push     ┌──────────────┐     GET /s/:id     ┌─────────┐
 │  Agent   │ ──────────────────────▶│  SparkUI     │◀────────────────── │ Browser │
 │ (AI/MCP) │                        │  Server      │ ──────────────────▶│  (User) │
-│          │◀── WebSocket ──────────│  :3457       │──── WebSocket ────▶│         │
-└─────────┘   completion events     └──────────────┘   user actions     └─────────┘
+│          │◀── hooks/callbacks ────│  :3457       │──── REST + WS ────▶│         │
+│          │─── POST /push ────────▶│  + Redis     │                    │         │
+└─────────┘   guaranteed delivery   └──────────────┘   state + events   └─────────┘
 ```
 
 **Flow:**
 1. Agent pushes a page (template or composed)
-2. Server generates HTML, stores in memory, returns URL
+2. Server generates HTML, stores page metadata in Redis, returns URL
 3. User opens URL in any browser
-4. User interacts (checks items, fills forms, clicks buttons)
-5. Actions flow back to the agent via WebSocket
-6. Page auto-expires after TTL
+4. User interacts — state auto-saves to localStorage + Redis (survives tab closes and server restarts)
+5. Events flow back to the agent via guaranteed delivery (Redis Streams → webhook with retry)
+6. Agent can push updates to the live page (toasts, content updates, reload)
+7. Page auto-expires after TTL
 
 ## Examples
 
@@ -200,6 +281,7 @@ See the [`examples/`](./examples/) directory for working scripts:
 | `SPARKUI_BASE_URL` | `http://localhost:3457` | Public URL for generated links |
 | `OPENCLAW_HOOKS_URL` | *(optional)* | OpenClaw webhook URL for event forwarding |
 | `OPENCLAW_HOOKS_TOKEN` | *(optional)* | Auth token for OpenClaw webhook |
+| `REDIS_URL` | `redis://127.0.0.1:6379` | Redis connection URL (required for v1.1 state/event persistence) |
 
 ## OpenClaw Skill
 
