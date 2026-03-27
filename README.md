@@ -20,6 +20,7 @@ SparkUI lets AI agents generate interactive web UIs on demand. Instead of walls 
 - 🔌 **MCP compatible** — works with Claude Desktop, Cursor, Windsurf
 - 🌙 **Dark theme** — easy on the eyes, polished look
 - 📡 **Agent push** — send toasts, update content, and reload pages from the server side
+- 🎨 **Auto icons** — emoji in templates automatically replaced with crisp Lucide SVG icons
 
 ## Quick Start
 
@@ -242,6 +243,18 @@ Query a page's event history:
 GET /api/pages/:id/events
 GET /api/pages/:id/events?type=completion&since=1234567890
 ```
+
+## Automatic Icon Replacement (v1.2)
+
+Emoji characters in templates are automatically replaced with inline Lucide SVG icons at serve time. No configuration needed — it just works.
+
+- **208 mapped emojis** — navigation, status, actions, health, food, finance, weather, and more
+- **Duotone rendering** — icons render with semantic fill colors for a polished look
+- **< 2ms overhead** — single-pass regex replacement with pre-compiled maps
+- **Accessible** — original emoji preserved as `aria-label` for screen readers
+- **Safe** — content inside `<code>`, `<pre>`, `<textarea>`, and `data-sparkui-no-replace` elements is never modified
+
+Powered by [`@limeade-labs/sparkui-icons`](https://github.com/limeade-labs/sparkui-icons).
 
 ## Architecture
 

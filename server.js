@@ -13,6 +13,9 @@ const components = require('./lib/components');
 const { AnalyticsStore } = require('./lib/analytics');
 const { RedisStore } = require('./lib/redis');
 const { DeliveryWorker } = require('./lib/delivery-worker');
+const sparkuiIcons = require('@limeade-labs/sparkui-icons');
+const SPARKUI_ICONS_CSS = fs.readFileSync(require.resolve('@limeade-labs/sparkui-icons/style.css'), 'utf-8');
+const SPARKUI_ICONS_STYLE_TAG = `<style id="sparkui-icons-styles">${SPARKUI_ICONS_CSS}</style>`;
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -92,6 +95,7 @@ const deliveryWorker = new DeliveryWorker(redisStore, {
 
 // Middleware
 app.use(express.json({ limit: '2mb' }));
+app.use('/files', express.static(path.join(__dirname, 'public', 'files')));
 app.use((req, res, next) => {
   // CORS
   res.set({
@@ -541,6 +545,24 @@ function notifyPageDestroy(pageId) {
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 // Landing page
+// ── FreshBooks OAuth Callback ────────────────────────────────────────────────
+app.get('/freshbooks/callback', (req, res) => {
+  const code = req.query.code;
+  if (!code) {
+    return res.status(400).send('Missing authorization code');
+  }
+  // Save code to file for pickup
+  const cbFile = path.join(__dirname, 'freshbooks', 'auth-code.txt');
+  fs.writeFileSync(cbFile, code, 'utf-8');
+  res.send(`
+    <html><body style="font-family: sans-serif; text-align: center; padding: 60px;">
+      <h1>✅ FreshBooks Authorization Received</h1>
+      <p>Auth code captured. Ron is exchanging it for tokens now.</p>
+      <p style="color: #666;">You can close this tab.</p>
+    </body></html>
+  `);
+});
+
 app.get('/', (req, res) => {
   const landingPath = path.join(__dirname, 'landing', 'index.html');
   if (fs.existsSync(landingPath)) {
@@ -601,7 +623,29 @@ app.get('/s/:id', (req, res) => {
   const visitorId = req.query._vid || req.headers['x-visitor-id'] || null;
   analytics.recordView(id, visitorId);
 
-  res.set('Content-Type', 'text/html').send(html);
+  // Replace emojis with Lucide SVG icons and inject base styles
+  let finalHtml = sparkuiIcons.replace(html, {
+    variant: 'duotone',
+    strokeColor: '#ffffff',
+    fillColor: '#3b82f6',
+    fillOpacity: 0.6,
+    colorMap: require('@limeade-labs/sparkui-icons/colors')
+  });
+  if (finalHtml !== html && !finalHtml.includes('sparkui-icon-wrap')) {
+    // Replacement happened but styles might be missing — handled by inline styles
+  }
+  // Inject sparkui-icons CSS if page has replaced icons and doesn't already include it
+  if (finalHtml.includes('sparkui-icon-wrap') && !finalHtml.includes('sparkui-icons-styles')) {
+    if (finalHtml.includes('</head>')) {
+      finalHtml = finalHtml.replace('</head>', `${SPARKUI_ICONS_STYLE_TAG}</head>`);
+    } else if (finalHtml.includes('<body')) {
+      finalHtml = finalHtml.replace('<body', `${SPARKUI_ICONS_STYLE_TAG}<body`);
+    } else {
+      finalHtml = SPARKUI_ICONS_STYLE_TAG + finalHtml;
+    }
+  }
+
+  res.set('Content-Type', 'text/html').send(finalHtml);
 });
 
 /**
