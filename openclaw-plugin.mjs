@@ -64,20 +64,42 @@ export default definePluginEntry({
               (publicUrl ? ` (public: ${publicUrl})` : "")
           );
         } catch (err) {
-          api.log?.error?.(`SparkUI failed to start: ${err.message}`);
+          // Port conflict — provide an actionable message
+          if (err.code === "EADDRINUSE") {
+            api.log?.error?.(
+              `SparkUI: port ${port} is already in use. ` +
+                `Set a different port in plugin config or SPARKUI_PORT env var.`
+            );
+          } else if (
+            redisUrl &&
+            (err.code === "ECONNREFUSED" || err.message?.includes("Redis"))
+          ) {
+            api.log?.warn?.(
+              `SparkUI: Redis connection failed (${redisUrl}). ` +
+                `The server may still start in in-memory mode.`
+            );
+          } else {
+            api.log?.error?.(`SparkUI failed to start: ${err.message}`);
+          }
           throw err;
         }
       },
 
       async stop() {
         if (serverRef) {
-          return new Promise((resolve) => {
+          return new Promise((res) => {
             serverRef.close(() => {
               serverReady = false;
               serverRef = null;
-              resolve();
+              api.log?.info?.("SparkUI server stopped");
+              res();
             });
-            setTimeout(() => resolve(), 5000).unref();
+            // Force-resolve after 5s so OpenClaw shutdown isn't blocked
+            setTimeout(() => {
+              serverReady = false;
+              serverRef = null;
+              res();
+            }, 5000).unref();
           });
         }
       },
