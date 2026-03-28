@@ -263,4 +263,49 @@ function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+comparison.schema = {
+  type: 'object',
+  description: 'Side-by-side product/option comparison with feature matrix, pros/cons, and selection.',
+  properties: {
+    title: { type: 'string', description: 'Comparison title', default: 'Compare Options', example: 'Best Headphones 2026' },
+    subtitle: { type: 'string', description: 'Subtitle text', example: 'Top picks compared' },
+    items: {
+      type: 'array',
+      description: 'Items to compare (2-5)',
+      minItems: 2,
+      maxItems: 5,
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Item name', example: 'Sony WH-1000XM5' },
+          image: { type: 'string', description: 'Emoji or image URL', example: '🎧' },
+          price: { type: 'string', description: 'Price display', example: '$349' },
+          rating: { type: 'number', description: 'Rating out of 5', example: 4.5 },
+          recommended: { type: 'boolean', description: 'Mark as recommended pick', default: false },
+          badge: { type: 'string', description: 'Custom badge text', example: 'Best Value' },
+          pros: { type: 'array', items: { type: 'string' }, description: 'Pros list', example: ['Great ANC', 'Comfortable'] },
+          cons: { type: 'array', items: { type: 'string' }, description: 'Cons list', example: ['Expensive'] },
+          features: { type: 'object', description: 'Feature key-value pairs (for comparison matrix)', additionalProperties: true, example: { 'Battery': '30hrs', 'ANC': true } },
+          link: { type: 'string', description: 'Link URL', example: 'https://example.com/product' },
+        },
+        required: ['name'],
+      },
+    },
+    featureLabels: {
+      type: 'array',
+      description: 'Feature names for comparison matrix (auto-detected from items if omitted)',
+      items: { type: 'string' },
+      example: ['Battery', 'ANC', 'Weight'],
+    },
+  },
+  required: ['items'],
+  example: {
+    title: 'Wireless Earbuds Comparison',
+    items: [
+      { name: 'AirPods Pro 2', price: '$249', rating: 4.7, recommended: true, pros: ['Seamless Apple integration', 'Great ANC'], cons: ['Apple-only features'], features: { 'Battery': '6hrs', 'ANC': true, 'Weight': '5.3g' } },
+      { name: 'Sony WF-1000XM5', price: '$279', rating: 4.5, pros: ['Best sound quality', 'Comfortable'], cons: ['Pricey'], features: { 'Battery': '8hrs', 'ANC': true, 'Weight': '5.9g' } },
+    ],
+  },
+};
+
 module.exports = comparison;

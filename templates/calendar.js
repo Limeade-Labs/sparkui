@@ -456,4 +456,49 @@ function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+calendar.schema = {
+  type: 'object',
+  description: 'Calendar view (day or week) with color-coded events, event details, and navigation.',
+  properties: {
+    title: { type: 'string', description: 'Calendar title', default: 'Calendar', example: 'My Schedule' },
+    view: { type: 'string', description: 'Initial view mode', enum: ['day', 'week'], default: 'day' },
+    date: { type: 'string', description: 'Focus date (ISO or YYYY-MM-DD), defaults to today', example: '2026-03-27' },
+    events: {
+      type: 'array',
+      description: 'Calendar events',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Event title', example: 'Team Standup' },
+          start: { type: 'string', description: 'Start time (ISO string)', example: '2026-03-27T09:00:00' },
+          end: { type: 'string', description: 'End time (ISO string)', example: '2026-03-27T09:30:00' },
+          category: { type: 'string', description: 'Category for color coding (Work, Personal, Health, Meeting, Social, Travel)', example: 'Meeting' },
+          color: { type: 'string', description: 'Custom color override (hex)', example: '#3b82f6' },
+          location: { type: 'string', description: 'Event location', example: 'Conference Room A' },
+          description: { type: 'string', description: 'Event description' },
+          allDay: { type: 'boolean', description: 'All-day event', default: false },
+        },
+        required: ['title', 'start'],
+      },
+    },
+    categories: {
+      type: 'object',
+      description: 'Custom category-to-color mapping',
+      additionalProperties: { type: 'string' },
+      example: { 'Work': '#3b82f6', 'Personal': '#22c55e' },
+    },
+  },
+  required: ['events'],
+  example: {
+    title: 'Today\'s Schedule',
+    view: 'day',
+    date: '2026-03-27',
+    events: [
+      { title: 'Team Standup', start: '2026-03-27T09:00:00', end: '2026-03-27T09:30:00', category: 'Meeting' },
+      { title: 'Lunch with Client', start: '2026-03-27T12:00:00', end: '2026-03-27T13:00:00', category: 'Work', location: 'Downtown Cafe' },
+      { title: 'Gym', start: '2026-03-27T17:00:00', end: '2026-03-27T18:00:00', category: 'Health' },
+    ],
+  },
+};
+
 module.exports = calendar;

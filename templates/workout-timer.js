@@ -745,4 +745,64 @@ function fmtTime(s) {
   return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
 }
 
+workoutTimer.schema = {
+  type: 'object',
+  description: 'Workout timer with rounds, rest periods, exercise cards, warmup/cooldown checklists, and completion tracking.',
+  properties: {
+    title: { type: 'string', description: 'Workout title', example: 'Full Body Strength' },
+    subtitle: { type: 'string', description: 'Subtitle (e.g. day/program)', example: 'Day 1 — Push' },
+    warmup: {
+      type: 'array',
+      description: 'Warmup checklist items',
+      items: {
+        type: 'object',
+        properties: { text: { type: 'string', description: 'Warmup item', example: 'Arm circles x20' } },
+        required: ['text'],
+      },
+    },
+    exercises: {
+      type: 'array',
+      description: 'Exercise list',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Exercise name', example: 'Push-ups' },
+          reps: { type: 'string', description: 'Rep scheme', example: '3x12' },
+          notes: { type: 'string', description: 'Optional notes', example: 'Keep core tight' },
+        },
+        required: ['name', 'reps'],
+      },
+    },
+    rounds: { type: 'number', description: 'Number of rounds', default: 3, example: 3 },
+    restSeconds: { type: 'number', description: 'Rest duration between rounds (seconds)', default: 60, example: 60 },
+    cooldown: {
+      type: 'array',
+      description: 'Cooldown checklist items',
+      items: {
+        type: 'object',
+        properties: { text: { type: 'string', description: 'Cooldown item', example: 'Hamstring stretch 30s' } },
+        required: ['text'],
+      },
+    },
+    estimatedMinutes: { type: 'number', description: 'Estimated workout duration in minutes', example: 45 },
+    estimatedCalories: { type: 'number', description: 'Estimated calories burned', example: 300 },
+  },
+  required: ['title', 'exercises'],
+  example: {
+    title: 'Upper Body Blast',
+    subtitle: 'Week 2 — Day 3',
+    exercises: [
+      { name: 'Push-ups', reps: '15', notes: 'Chest to floor' },
+      { name: 'Dumbbell rows', reps: '12 each side' },
+      { name: 'Shoulder press', reps: '10' },
+    ],
+    rounds: 3,
+    restSeconds: 60,
+    warmup: [{ text: 'Arm circles x20' }, { text: 'Jump rope 2min' }],
+    cooldown: [{ text: 'Chest stretch 30s' }],
+    estimatedMinutes: 35,
+    estimatedCalories: 250,
+  },
+};
+
 module.exports = workoutTimer;

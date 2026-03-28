@@ -137,4 +137,25 @@ function feedbackForm(data = {}) {
   });
 }
 
+feedbackForm.schema = {
+  type: 'object',
+  description: 'Feedback form with star rating (1-5), text feedback, optional extra questions.',
+  properties: {
+    title: { type: 'string', description: 'Form title', default: 'Feedback', example: 'How was your experience?' },
+    subtitle: { type: 'string', description: 'Subtitle text', default: "We'd love to hear from you.", example: 'Your feedback helps us improve' },
+    questions: {
+      type: 'array',
+      description: 'Optional extra text fields (labels)',
+      items: { type: 'string' },
+      example: ['What feature do you want most?', 'How did you hear about us?'],
+    },
+  },
+  required: [],
+  example: {
+    title: 'Product Feedback',
+    subtitle: 'Tell us what you think',
+    questions: ['What could we improve?'],
+  },
+};
+
 module.exports = feedbackForm;

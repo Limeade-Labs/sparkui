@@ -601,6 +601,26 @@ app.get('/', (req, res) => {
   });
 });
 
+// ── Template Schema Discovery ────────────────────────────────────────────────
+
+// GET /api/templates — list all templates with schemas
+app.get('/api/templates', (req, res) => {
+  res.json({ templates: templates.listWithSchemas() });
+});
+
+// GET /api/templates/:name/schema — get schema for a specific template
+app.get('/api/templates/:name/schema', (req, res) => {
+  const name = req.params.name;
+  if (!templates.has(name)) {
+    return res.status(404).json({ error: `Unknown template "${name}". Available: ${templates.list().join(', ')}` });
+  }
+  const schema = templates.getSchema(name);
+  if (!schema) {
+    return res.status(404).json({ error: `Template "${name}" has no schema defined` });
+  }
+  res.json({ template: name, schema });
+});
+
 // Health/status check (API) — now includes Redis health
 app.get('/api/status', async (req, res) => {
   const redisHealthy = await redisStore.healthCheck();
@@ -703,6 +723,21 @@ app.post('/api/push', requireAuth, async (req, res) => {
       if (!templates.has(template)) {
         return res.status(400).json({ error: `Unknown template "${template}". Available: ${templates.list().join(', ')}` });
       }
+
+      // Validate data against template schema
+      if (data) {
+        const validation = templates.validate(template, data);
+        if (!validation.valid) {
+          const schema = templates.getSchema(template);
+          return res.status(400).json({
+            error: 'Data validation failed',
+            template,
+            validationErrors: validation.errors,
+            hint: schema && schema.example ? 'Example data: ' + JSON.stringify(schema.example) : undefined,
+          });
+        }
+      }
+
       const templateData = { ...data, _pageId: id, _og: ogDefaults };
       finalHtml = templates.render(template, templateData);
     } else {

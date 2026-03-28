@@ -23,8 +23,14 @@
     "SKILL.md",
     "mcp-server/index.js",
     "mcp-server/package.json",
-    "mcp-server/README.md"
+    "mcp-server/README.md",
+    "openclaw-plugin.mjs",
+    "openclaw.plugin.json",
+    "skills/"
   ],
+  "openclaw": {
+    "extensions": ["./openclaw-plugin.mjs"]
+  },
   "engines": {
     "node": ">=18"
   },

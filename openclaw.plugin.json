@@ -1,0 +1,49 @@
+{
+  "id": "sparkui",
+  "name": "SparkUI",
+  "description": "Ephemeral, purpose-built web UIs generated on demand from chat conversations",
+  "version": "1.2.1",
+  "skills": ["skills/sparkui"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "port": {
+        "type": "number",
+        "description": "Port for the SparkUI Express server (default: 3457)"
+      },
+      "pushToken": {
+        "type": "string",
+        "description": "Push API authentication token (auto-generated if not set)"
+      },
+      "publicUrl": {
+        "type": "string",
+        "description": "Public URL for SparkUI (e.g. https://sparkui.dev). Used for generating shareable links."
+      },
+      "redisUrl": {
+        "type": "string",
+        "description": "Redis connection URL for state persistence (optional — works without Redis in degraded mode)"
+      }
+    }
+  },
+  "uiHints": {
+    "port": {
+      "label": "Port",
+      "placeholder": "3457"
+    },
+    "pushToken": {
+      "label": "Push Token",
+      "sensitive": true,
+      "placeholder": "spk_..."
+    },
+    "publicUrl": {
+      "label": "Public URL",
+      "placeholder": "https://sparkui.example.com"
+    },
+    "redisUrl": {
+      "label": "Redis URL",
+      "placeholder": "redis://localhost:6379",
+      "help": "Optional. SparkUI works without Redis (in-memory only)."
+    }
+  }
+}

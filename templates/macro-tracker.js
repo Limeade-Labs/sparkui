@@ -202,4 +202,73 @@ function macroTracker(data) {
   });
 }
 
+macroTracker.schema = {
+  type: 'object',
+  description: 'Daily macro/nutrition tracker with circular progress, meal log, and summary bar.',
+  properties: {
+    date: { type: 'string', description: 'Date string (YYYY-MM-DD)', example: '2026-03-27' },
+    calories: {
+      type: 'object',
+      description: 'Calorie tracking',
+      properties: {
+        current: { type: 'number', description: 'Calories consumed', example: 1200 },
+        target: { type: 'number', description: 'Calorie goal', example: 1900 },
+      },
+      required: ['current', 'target'],
+    },
+    protein: {
+      type: 'object',
+      description: 'Protein tracking',
+      properties: {
+        current: { type: 'number', description: 'Grams consumed', example: 60 },
+        target: { type: 'number', description: 'Gram goal', example: 86 },
+      },
+      required: ['current', 'target'],
+    },
+    fat: {
+      type: 'object',
+      description: 'Fat tracking',
+      properties: {
+        current: { type: 'number', description: 'Grams consumed', example: 90 },
+        target: { type: 'number', description: 'Gram goal', example: 162 },
+      },
+      required: ['current', 'target'],
+    },
+    carbs: {
+      type: 'object',
+      description: 'Carbs tracking',
+      properties: {
+        current: { type: 'number', description: 'Grams consumed', example: 15 },
+        target: { type: 'number', description: 'Gram goal', example: 25 },
+      },
+      required: ['current', 'target'],
+    },
+    meals: {
+      type: 'array',
+      description: 'List of meals eaten',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Meal name', example: 'Grilled chicken salad' },
+          calories: { type: 'number', description: 'Meal calories', example: 450 },
+          time: { type: 'string', description: 'Time eaten', example: '12:30 PM' },
+        },
+        required: ['name', 'calories'],
+      },
+    },
+  },
+  required: ['date', 'calories', 'protein', 'fat', 'carbs'],
+  example: {
+    date: '2026-03-27',
+    calories: { current: 1200, target: 1900 },
+    protein: { current: 60, target: 86 },
+    fat: { current: 90, target: 162 },
+    carbs: { current: 15, target: 25 },
+    meals: [
+      { name: 'Eggs & bacon', calories: 400, time: '7:00 AM' },
+      { name: 'Grilled chicken salad', calories: 450, time: '12:30 PM' },
+    ],
+  },
+};
+
 module.exports = macroTracker;

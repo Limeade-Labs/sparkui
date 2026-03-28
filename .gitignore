@@ -8,3 +8,5 @@ coverage/
 mcp-server/node_modules/
 .vscode/
 .idea/
+freshbooks/
+public/files/*.mp3

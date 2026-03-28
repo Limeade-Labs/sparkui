@@ -41,12 +41,27 @@ const server = new McpServer({
 // Tool: sparkui_list_templates
 server.tool(
   'sparkui_list_templates',
-  'List available SparkUI page templates. Returns template names that can be used with sparkui_push.',
+  'List available SparkUI page templates with their JSON schemas. Each schema describes the expected data fields, types, required properties, and includes examples. Use the schema to generate correct push data on the first try.',
   {},
   async () => {
-    const data = await sparkuiRequest('GET', '/');
+    const data = await sparkuiRequest('GET', '/api/templates');
     return {
-      content: [{ type: 'text', text: JSON.stringify({ templates: data.templates }, null, 2) }],
+      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+// Tool: sparkui_template_schema
+server.tool(
+  'sparkui_template_schema',
+  'Get the detailed JSON schema for a specific SparkUI template. Shows required fields, types, descriptions, defaults, and examples for the data payload.',
+  {
+    template: z.string().describe('Template name (e.g. "checkout", "macro-tracker", "poll")'),
+  },
+  async ({ template }) => {
+    const data = await sparkuiRequest('GET', `/api/templates/${encodeURIComponent(template)}/schema`);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
     };
   }
 );

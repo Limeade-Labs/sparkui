@@ -268,4 +268,33 @@ function checkout(data = {}) {
   });
 }
 
+checkout.schema = {
+  type: 'object',
+  description: 'Fake Stripe-style checkout page. 100% cosmetic — no real payment processing.',
+  properties: {
+    product: {
+      type: 'object',
+      description: 'Product being purchased',
+      properties: {
+        name: { type: 'string', description: 'Product name', example: 'Pro Plan' },
+        description: { type: 'string', description: 'Product description', example: '1 year of Pro features' },
+        price: { type: 'number', description: 'Unit price', example: 29.99 },
+        image: { type: 'string', description: 'Emoji icon for product', example: '🚀' },
+        imageUrl: { type: 'string', description: 'URL to product image (overrides image emoji)', example: 'https://example.com/product.png' },
+      },
+      required: ['name', 'price'],
+    },
+    shipping: { type: 'number', description: 'Shipping cost (0 = Free)', default: 0, example: 0 },
+    tax: { type: 'number', description: 'Tax amount', default: 0, example: 2.40 },
+    currency: { type: 'string', description: 'Currency code', default: 'USD', example: 'USD' },
+  },
+  required: ['product'],
+  example: {
+    product: { name: 'Pro Plan', description: 'Annual subscription', price: 99.99, image: '🚀' },
+    shipping: 0,
+    tax: 8.00,
+    currency: 'USD',
+  },
+};
+
 module.exports = checkout;

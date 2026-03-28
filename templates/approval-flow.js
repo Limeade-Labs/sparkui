@@ -290,4 +290,46 @@ function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+approvalFlow.schema = {
+  type: 'object',
+  description: 'Approval request page with Approve/Reject/Request Changes actions, optional comment, and status tracking.',
+  properties: {
+    title: { type: 'string', description: 'Request title', example: 'Q2 Marketing Budget' },
+    description: { type: 'string', description: 'Request description', example: 'Budget increase for digital campaigns' },
+    requester: { type: 'string', description: 'Who submitted the request', example: 'Jane Smith' },
+    amount: { type: 'string', description: 'Amount or impact level', example: '$5,000' },
+    status: { type: 'string', description: 'Current status', enum: ['pending', 'approved', 'rejected', 'changes_requested'], default: 'pending' },
+    details: {
+      type: 'array',
+      description: 'Key-value detail rows',
+      items: {
+        type: 'object',
+        properties: {
+          label: { type: 'string', description: 'Detail label', example: 'Department' },
+          value: { type: 'string', description: 'Detail value', example: 'Marketing' },
+        },
+        required: ['label', 'value'],
+      },
+    },
+    requireComment: { type: 'boolean', description: 'Require comment before action', default: false },
+    showRequestChanges: { type: 'boolean', description: 'Show "Request Changes" button', default: true },
+    urgency: { type: 'string', description: 'Urgency level', enum: ['low', 'medium', 'high', 'critical'] },
+  },
+  required: ['title'],
+  example: {
+    title: 'New Server Purchase',
+    description: 'Need to provision 3 additional servers for scaling',
+    requester: 'Ryan Eade',
+    amount: '$12,000',
+    status: 'pending',
+    urgency: 'high',
+    details: [
+      { label: 'Department', value: 'Engineering' },
+      { label: 'Priority', value: 'P1' },
+      { label: 'Deadline', value: '2026-04-15' },
+    ],
+    requireComment: true,
+  },
+};
+
 module.exports = approvalFlow;

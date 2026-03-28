@@ -15,7 +15,7 @@ const base = require('./base');
  *   _og: object
  * }
  */
-module.exports = function analyticsDashboard(data = {}) {
+function analyticsDashboard(data = {}) {
   const { pageId, token, title, _pageId, _og } = data;
   const dashTitle = title || (pageId ? `Analytics: ${pageId.slice(0, 8)}…` : 'SparkUI Analytics');
 
@@ -302,4 +302,21 @@ module.exports = function analyticsDashboard(data = {}) {
     og: _og || {},
     extraHead: '<meta name="robots" content="noindex">',
   });
+}
+
+analyticsDashboard.schema = {
+  type: 'object',
+  description: 'Real-time analytics dashboard for SparkUI pages. Shows views, interactions, completions, and activity feed.',
+  properties: {
+    pageId: { type: 'string', description: 'Specific page UUID to show analytics for (omit for all pages)', example: 'abc123-def456' },
+    token: { type: 'string', description: 'Push token for API authentication (required to fetch analytics data)' },
+    title: { type: 'string', description: 'Dashboard title', example: 'Campaign Analytics' },
+  },
+  required: ['token'],
+  example: {
+    token: 'spk_your_push_token_here',
+    title: 'My Dashboard',
+  },
 };
+
+module.exports = analyticsDashboard;

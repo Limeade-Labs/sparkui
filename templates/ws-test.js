@@ -133,4 +133,12 @@ function wsTest(data = {}) {
   });
 }
 
+wsTest.schema = {
+  type: 'object',
+  description: 'WebSocket test/demo page. Tests all WS bridge features: events, completion, status, server messages. No required data fields.',
+  properties: {},
+  required: [],
+  example: {},
+};
+
 module.exports = wsTest;

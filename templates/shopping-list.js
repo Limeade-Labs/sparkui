@@ -327,4 +327,40 @@ function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+shoppingList.schema = {
+  type: 'object',
+  description: 'Categorized shopping list with checkable items, real-time sync, and dynamic add.',
+  properties: {
+    title: { type: 'string', description: 'List title', default: 'Shopping List', example: 'Grocery Run' },
+    items: {
+      type: 'array',
+      description: 'Shopping list items',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Item name', example: 'Avocados' },
+          category: { type: 'string', description: 'Category (Produce, Dairy, Meat, Bakery, Frozen, Beverages, Snacks, Pantry, Household, Other)', default: 'Other', example: 'Produce' },
+          quantity: { type: 'string', description: 'Quantity', example: '3' },
+          notes: { type: 'string', description: 'Notes', example: 'Ripe ones' },
+          checked: { type: 'boolean', description: 'Already checked off', default: false },
+        },
+        required: ['name'],
+      },
+    },
+    allowAdd: { type: 'boolean', description: 'Allow adding items dynamically', default: true },
+    collaborative: { type: 'boolean', description: 'Show live collaboration indicator', default: false },
+  },
+  required: ['items'],
+  example: {
+    title: 'Weekly Groceries',
+    items: [
+      { name: 'Avocados', category: 'Produce', quantity: '3' },
+      { name: 'Chicken breast', category: 'Meat', quantity: '2 lbs' },
+      { name: 'Almond milk', category: 'Dairy', quantity: '1' },
+    ],
+    allowAdd: true,
+    collaborative: false,
+  },
+};
+
 module.exports = shoppingList;

@@ -307,4 +307,37 @@ function escJs(str) {
   return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
+poll.schema = {
+  type: 'object',
+  description: 'Poll / voting page with real-time tallying, bar chart, single or multi-select.',
+  properties: {
+    question: { type: 'string', description: 'The poll question', example: 'What framework do you prefer?' },
+    options: {
+      type: 'array',
+      description: 'Choice options — strings or {text, icon} objects',
+      items: {
+        oneOf: [
+          { type: 'string' },
+          { type: 'object', properties: { text: { type: 'string' }, icon: { type: 'string' } }, required: ['text'] },
+        ],
+      },
+      example: ['React', 'Vue', 'Svelte'],
+    },
+    multiSelect: { type: 'boolean', description: 'Allow selecting multiple options', default: false },
+    anonymous: { type: 'boolean', description: 'Anonymous voting (no name required)', default: true },
+    showResults: { type: 'boolean', description: 'Show live results', default: true },
+    maxVotes: { type: 'number', description: 'Auto-close after this many votes' },
+    closesAt: { type: 'string', description: 'ISO timestamp to auto-close the poll', example: '2026-04-01T00:00:00Z' },
+    subtitle: { type: 'string', description: 'Optional subtitle text' },
+  },
+  required: ['question', 'options'],
+  example: {
+    question: 'What should we build next?',
+    options: ['Dashboard', 'Mobile app', 'API v2'],
+    multiSelect: false,
+    anonymous: true,
+    showResults: true,
+  },
+};
+
 module.exports = poll;
