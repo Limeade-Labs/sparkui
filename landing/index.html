@@ -797,13 +797,13 @@ footer{
       </h3>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
         <div style="background:var(--green-glow);border:1px solid rgba(34,197,94,.3);border-radius:var(--radius);padding:24px;position:relative">
-          <span style="position:absolute;top:-10px;right:12px;background:var(--green);color:#0f172a;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:50px">Easiest</span>
+          <span style="position:absolute;top:-10px;right:12px;background:var(--green);color:#0f172a;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:50px">Coming Soon</span>
           <h4 style="color:var(--green);font-size:.95rem;font-weight:700;margin-bottom:8px">OpenClaw Plugin</h4>
-          <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:12px">Already have OpenClaw? SparkUI runs alongside your gateway. One command, zero extra hosting.</p>
-          <div class="code-block" style="margin:0;padding:12px 16px">
-            <pre style="font-size:.8rem"><span class="fn">openclaw</span> plugin add sparkui</pre>
+          <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:12px">SparkUI will run alongside your OpenClaw gateway — one command, zero extra hosting, auto-configured.</p>
+          <div class="code-block" style="margin:0;padding:12px 16px;opacity:.6">
+            <pre style="font-size:.8rem"><span class="fn">openclaw</span> plugins install @limeade-labs/sparkui</pre>
           </div>
-          <p style="color:var(--text-dim);font-size:.78rem;margin-top:8px">Auto-configures URL, token, and skill. Done.</p>
+          <p style="color:var(--text-dim);font-size:.78rem;margin-top:8px">Auto-configures URL, token, and skill. <a href="https://github.com/Limeade-Labs/sparkui/issues" target="_blank" style="color:var(--green)">Follow progress →</a></p>
         </div>
         <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px">
           <h4 style="color:var(--text-bright);font-size:.95rem;font-weight:700;margin-bottom:8px">One-Click Deploy</h4>
@@ -844,19 +844,19 @@ footer{
     <!-- OpenClaw -->
     <div class="qs-panel active" id="qs-openclaw">
       <div class="code-block" style="margin-top:0">
-        <span class="code-lang">zero config</span>
-        <pre><span class="cm"># If you used `openclaw plugin add sparkui`, you're already done.</span>
-<span class="cm"># The plugin auto-configures everything — URL, token, and skill.</span>
-<span class="cm"># Your agent has sparkui_push and sparkui_compose tools immediately.</span>
+        <span class="code-lang">terminal</span>
+        <pre><span class="cm"># Step 1: Copy the SparkUI skill into your agent workspace</span>
+<span class="fn">cp</span> -r node_modules/@limeade-labs/sparkui/skills/sparkui ~/clawd/skills/
 
+<span class="cm"># Step 2: Set your SparkUI server URL and token</span>
+<span class="fn">openclaw</span> config set sparkui.url https://your-sparkui-server.com
+<span class="fn">openclaw</span> config set sparkui.token spk_your_token
+
+<span class="cm"># Your agent now has sparkui_push and sparkui_compose tools.</span>
 <span class="cm"># Works across every channel — Slack, Discord, Telegram, iMessage, WhatsApp.</span>
-<span class="cm"># Just talk to your agent:</span>
 
-<span class="str">"Track my macros for today — 1800 cal target"</span>
-<span class="str">"Create a poll: should we do tacos or pizza for team lunch?"</span>
-<span class="str">"Build a comparison table for these 3 hosting options"</span>
-
-<span class="cm"># Agent generates the page → sends you a link → you interact → results flow back.</span></pre>
+<span class="cm"># 🔜 Soon: `openclaw plugins install @limeade-labs/sparkui`</span>
+<span class="cm">#    One command. Auto-hosts the server, generates token, installs skill.</span></pre>
       </div>
     </div>
 
