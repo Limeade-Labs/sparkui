@@ -566,7 +566,29 @@ app.get('/freshbooks/callback', (req, res) => {
 app.get('/', (req, res) => {
   const landingPath = path.join(__dirname, 'landing', 'index.html');
   if (fs.existsSync(landingPath)) {
-    return res.sendFile(landingPath);
+    let html = fs.readFileSync(landingPath, 'utf-8');
+    // Preserve sections marked with SPARKUI-ICONS-SKIP comments
+    const skipBlocks = [];
+    html = html.replace(/<!-- SPARKUI-ICONS-SKIP-START -->[\s\S]*?<!-- SPARKUI-ICONS-SKIP-END -->/g, (match, offset) => {
+      const placeholder = `__SPARKUI_SKIP_${skipBlocks.length}__`;
+      skipBlocks.push(match);
+      return placeholder;
+    });
+    // Run sparkui-icons replacement on landing page (eat our own dogfood)
+    let result = sparkuiIcons.replace(html, {
+      variant: 'duotone',
+      colorMap: require('@limeade-labs/sparkui-icons/colors')
+    });
+    // Restore skipped blocks
+    skipBlocks.forEach((block, i) => {
+      result = result.replace(`__SPARKUI_SKIP_${i}__`, block);
+    });
+    // Inject icon CSS
+    if (result !== html) {
+      result = result.replace('</head>', SPARKUI_ICONS_STYLE_TAG + '</head>');
+    }
+    res.set('Content-Type', 'text/html');
+    return res.send(result);
   }
   res.json({
     status: 'ok',
