@@ -3,7 +3,7 @@
 **Ephemeral interactive UIs for AI agents.** Generate rich web pages from chat — no app install required.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![npm version](https://img.shields.io/npm/v/sparkui.svg)](https://www.npmjs.com/package/sparkui)
+[![npm version](https://img.shields.io/npm/v/@limeade-labs/sparkui.svg)](https://www.npmjs.com/package/@limeade-labs/sparkui)
 
 ---
 
