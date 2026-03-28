@@ -59,8 +59,7 @@ section{padding:80px 0}
   font-size:1.2rem;font-weight:800;color:var(--text-bright);
   display:flex;align-items:center;gap:8px;
 }
-.nav-logo .sparkui-icon-wrap{--si-fill:transparent!important;--si-stroke:#4ade80!important}
-.nav-logo .sparkui-icon{stroke:#4ade80;fill:none;width:22px;height:22px}
+.nav-logo .sparkui-icon{width:22px;height:22px}
 .nav-logo span{
   background:linear-gradient(135deg,var(--green),#4ade80);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
@@ -109,9 +108,10 @@ section{padding:80px 0}
   100%{opacity:1;transform:scale(1.05)}
 }
 .hero-content{position:relative;z-index:1}
+/* All zap/spark icons site-wide: green outline brand style */
+.lucide-zap{stroke:#4ade80!important;fill:none!important}
 .hero-spark{display:block;margin-bottom:16px;filter:drop-shadow(0 0 40px rgba(74,222,128,.4))}
-.hero-spark .sparkui-icon-wrap{--si-fill:transparent!important;--si-stroke:#4ade80!important}
-.hero-spark .sparkui-icon{width:clamp(80px,15vw,120px);height:clamp(80px,15vw,120px);stroke:#4ade80;fill:none}
+.hero-spark .sparkui-icon{width:clamp(80px,15vw,120px);height:clamp(80px,15vw,120px)}
 .hero h1{
   font-size:clamp(3rem,8vw,4.5rem);font-weight:900;
   color:var(--text-bright);letter-spacing:-.02em;margin-bottom:16px;
@@ -171,6 +171,8 @@ section{padding:80px 0}
 .problem-solution{background:var(--bg2)}
 .ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:40px}
 @media(max-width:768px){.ps-grid{grid-template-columns:1fr;gap:32px}.icons-compare{grid-template-columns:1fr!important}}
+@media(max-width:900px){.icons-showcase [style*="grid-template-columns:repeat(4"]{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:480px){.icons-showcase [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr!important}}
 .ps-card{padding:32px;border-radius:var(--radius);position:relative}
 .ps-card.problem{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15)}
 .ps-card.solution{background:var(--green-glow);border:1px solid rgba(34,197,94,.2)}
@@ -577,7 +579,55 @@ footer{
           <p style="margin-top:16px;font-size:.88rem;color:var(--text-dim)">Crisp, consistent, color-coded SVGs — 208 icons included</p>
         </div>
       </div>
-      <div style="text-align:center;margin-top:32px" class="fade-in d2">
+      <!-- Icon style options showcase -->
+      <div class="fade-in d2" style="margin-top:48px">
+        <h3 style="font-size:1.2rem;font-weight:700;color:var(--text-bright);text-align:center;margin-bottom:8px">Style &amp; Color Options</h3>
+        <p style="color:var(--text-dim);font-size:.92rem;text-align:center;margin-bottom:28px">Choose the variant that fits your brand. All configurable via a single option.</p>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+          <!-- Outline -->
+          <div style="background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px;text-align:center">
+            <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--green);margin-bottom:16px">Outline</p>
+            <div style="display:flex;justify-content:center;gap:14px;margin-bottom:12px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <code style="font-size:.75rem;color:var(--text-dim)">variant: "outline"</code>
+          </div>
+          <!-- Duotone -->
+          <div style="background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px;text-align:center">
+            <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--green);margin-bottom:16px">Duotone <span style="font-size:.6rem;background:var(--green);color:#0f172a;padding:2px 6px;border-radius:50px;margin-left:4px">Default</span></p>
+            <div style="display:flex;justify-content:center;gap:14px;margin-bottom:12px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(59,130,246,.15)" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(34,197,94,.15)" stroke="#22c55e" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(168,85,247,.15)" stroke="#a855f7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <code style="font-size:.75rem;color:var(--text-dim)">variant: "duotone"</code>
+          </div>
+          <!-- Filled -->
+          <div style="background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px;text-align:center">
+            <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--green);margin-bottom:16px">Filled</p>
+            <div style="display:flex;justify-content:center;gap:14px;margin-bottom:12px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#3b82f6" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#a855f7" stroke="#a855f7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <code style="font-size:.75rem;color:var(--text-dim)">variant: "filled"</code>
+          </div>
+          <!-- Custom Colors -->
+          <div style="background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px;text-align:center">
+            <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--green);margin-bottom:16px">Custom Colors</p>
+            <div style="display:flex;justify-content:center;gap:14px;margin-bottom:12px">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(239,68,68,.15)" stroke="#ef4444" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(236,72,153,.15)" stroke="#ec4899" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(6,182,212,.15)" stroke="#06b6d4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <code style="font-size:.75rem;color:var(--text-dim)">colorMap: {...}</code>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:32px" class="fade-in d3">
         <div class="badge" style="font-size:.88rem;padding:10px 20px">
           <span style="color:var(--green)">✦</span> Powered by <a href="https://github.com/Limeade-Labs/sparkui-icons" target="_blank" style="font-weight:700">@limeade-labs/sparkui-icons</a> — also available as a standalone npm package
         </div>
