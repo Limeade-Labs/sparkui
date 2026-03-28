@@ -1,0 +1,46 @@
+service: sparkui
+image: limeade-labs/sparkui
+
+servers:
+  web:
+    - 157.245.14.0
+
+proxy:
+  ssl: true
+  host: sparkui.dev
+  healthcheck:
+    path: /up
+    interval: 5
+    timeout: 5
+
+registry:
+  server: ghcr.io
+  username:
+    - KAMAL_REGISTRY_USERNAME
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+ssh:
+  user: root
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    SPARKUI_PORT: 3457
+    SPARKUI_BASE_URL: https://sparkui.dev
+    OPENCLAW_HOOKS_URL: http://127.0.0.1:18789/hooks/agent
+    REDIS_URL: redis://sparkui-redis:6379/0
+  secret:
+    - PUSH_TOKEN
+    - OPENCLAW_HOOKS_TOKEN
+
+accessories:
+  redis:
+    image: redis:7-alpine
+    host: 157.245.14.0
+    port: 6379
+    volumes:
+      - sparkui-redis-data:/data
+    cmd: redis-server --appendonly yes

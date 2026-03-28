@@ -8,5 +8,8 @@ coverage/
 mcp-server/node_modules/
 .vscode/
 .idea/
+
+# Kamal deployment secrets
+.kamal/secrets
 freshbooks/
 public/files/*.mp3

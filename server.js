@@ -622,6 +622,10 @@ app.get('/api/templates/:name/schema', (req, res) => {
 });
 
 // Health/status check (API) — now includes Redis health
+app.get('/up', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.get('/api/status', async (req, res) => {
   const redisHealthy = await redisStore.healthCheck();
   res.json({
