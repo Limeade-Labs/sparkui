@@ -285,6 +285,9 @@ section{padding:80px 0}
 }
 @media(max-width:768px){.int-code-examples{grid-template-columns:1fr}}
 
+/* ── QUICK START ── */
+@media(max-width:768px){#integrations [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important}}
+
 /* ── QUICK START TABS ── */
 .qs-tab{
   padding:8px 18px;border-radius:50px;font-size:.85rem;font-weight:600;
@@ -400,7 +403,7 @@ footer{
       <li><a href="#icons">Icons</a></li>
       <li><a href="#demos">Demos</a></li>
       <li><a href="#how-it-works">How It Works</a></li>
-      <li><a href="#integrations">Integrations</a></li>
+      <li><a href="#integrations">Quick Start</a></li>
       <li><a href="https://github.com/limeade-labs/sparkui#readme" target="_blank">Docs</a></li>
       <li><a href="https://github.com/limeade-labs/sparkui" target="_blank" class="nav-ext">GitHub</a></li>
       <li><a href="https://www.npmjs.com/package/@limeade-labs/sparkui" target="_blank" class="nav-ext">npm</a></li>
@@ -785,21 +788,80 @@ footer{
   <div class="container">
     <div class="section-label">Quick Start</div>
     <h2 class="section-title">Wire it up in 2 minutes</h2>
-    <p class="section-subtitle">SparkUI works with any AI platform that supports MCP or REST. Pick yours.</p>
+    <p class="section-subtitle">SparkUI works with every major AI platform. OpenClaw users get it with zero config — everyone else just needs an MCP config or a single API call.</p>
+
+    <!-- Step 1: Get a Server -->
+    <div style="margin-top:40px;margin-bottom:40px">
+      <h3 style="font-size:1.15rem;font-weight:700;color:var(--text-bright);margin-bottom:20px">
+        <span style="color:var(--green);margin-right:8px">①</span> Get a SparkUI server
+      </h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+        <div style="background:var(--green-glow);border:1px solid rgba(34,197,94,.3);border-radius:var(--radius);padding:24px;position:relative">
+          <span style="position:absolute;top:-10px;right:12px;background:var(--green);color:#0f172a;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:50px">Easiest</span>
+          <h4 style="color:var(--green);font-size:.95rem;font-weight:700;margin-bottom:8px">OpenClaw Plugin</h4>
+          <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:12px">Already have OpenClaw? SparkUI runs alongside your gateway. One command, zero extra hosting.</p>
+          <div class="code-block" style="margin:0;padding:12px 16px">
+            <pre style="font-size:.8rem"><span class="fn">openclaw</span> plugin add sparkui</pre>
+          </div>
+          <p style="color:var(--text-dim);font-size:.78rem;margin-top:8px">Auto-configures URL, token, and skill. Done.</p>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px">
+          <h4 style="color:var(--text-bright);font-size:.95rem;font-weight:700;margin-bottom:8px">One-Click Deploy</h4>
+          <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:16px">Deploy your own instance to any cloud platform in one click.</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <a href="https://render.com/deploy?repo=https://github.com/limeade-labs/sparkui" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>▲</span> Deploy to Render</a>
+            <a href="https://railway.app/template?repo=https://github.com/limeade-labs/sparkui" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>🚂</span> Deploy to Railway</a>
+            <a href="https://fly.io/docs/hands-on/install-flyctl/" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>🪁</span> Deploy to Fly.io</a>
+          </div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px">
+          <h4 style="color:var(--text-bright);font-size:.95rem;font-weight:700;margin-bottom:8px">Run Locally</h4>
+          <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:12px">Try it out on your machine first. No account needed.</p>
+          <div class="code-block" style="margin:0;padding:12px 16px">
+            <pre style="font-size:.8rem"><span class="fn">npx</span> @limeade-labs/sparkui</pre>
+          </div>
+          <p style="color:var(--text-dim);font-size:.78rem;margin-top:8px">Starts on port 3456. Token auto-generated.<br>Use <a href="https://ngrok.com" target="_blank">ngrok</a> or <a href="https://tailscale.com" target="_blank">Tailscale</a> to expose it.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Connect Your AI -->
+    <h3 style="font-size:1.15rem;font-weight:700;color:var(--text-bright);margin-bottom:20px">
+      <span style="color:var(--green);margin-right:8px">②</span> Connect your AI
+    </h3>
 
     <!-- Platform tabs -->
-    <div class="qs-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:32px;margin-bottom:24px">
-      <button class="qs-tab active" onclick="showQS('claude')" data-tab="claude">Claude Desktop</button>
+    <div class="qs-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+      <button class="qs-tab active" onclick="showQS('openclaw')" data-tab="openclaw">OpenClaw</button>
+      <button class="qs-tab" onclick="showQS('claude')" data-tab="claude">Claude Desktop</button>
       <button class="qs-tab" onclick="showQS('claude-code')" data-tab="claude-code">Claude Code</button>
       <button class="qs-tab" onclick="showQS('chatgpt')" data-tab="chatgpt">ChatGPT</button>
       <button class="qs-tab" onclick="showQS('gemini')" data-tab="gemini">Gemini</button>
       <button class="qs-tab" onclick="showQS('cursor')" data-tab="cursor">Cursor / Windsurf</button>
-      <button class="qs-tab" onclick="showQS('openclaw')" data-tab="openclaw">OpenClaw</button>
       <button class="qs-tab" onclick="showQS('rest')" data-tab="rest">REST API</button>
     </div>
 
+    <!-- OpenClaw -->
+    <div class="qs-panel active" id="qs-openclaw">
+      <div class="code-block" style="margin-top:0">
+        <span class="code-lang">zero config</span>
+        <pre><span class="cm"># If you used `openclaw plugin add sparkui`, you're already done.</span>
+<span class="cm"># The plugin auto-configures everything — URL, token, and skill.</span>
+<span class="cm"># Your agent has sparkui_push and sparkui_compose tools immediately.</span>
+
+<span class="cm"># Works across every channel — Slack, Discord, Telegram, iMessage, WhatsApp.</span>
+<span class="cm"># Just talk to your agent:</span>
+
+<span class="str">"Track my macros for today — 1800 cal target"</span>
+<span class="str">"Create a poll: should we do tacos or pizza for team lunch?"</span>
+<span class="str">"Build a comparison table for these 3 hosting options"</span>
+
+<span class="cm"># Agent generates the page → sends you a link → you interact → results flow back.</span></pre>
+      </div>
+    </div>
+
     <!-- Claude Desktop -->
-    <div class="qs-panel active" id="qs-claude">
+    <div class="qs-panel" id="qs-claude">
       <div class="code-block" style="margin-top:0">
         <span class="code-lang">claude_desktop_config.json</span>
         <pre><span class="cm">// Settings → Developer → Edit Config</span>
@@ -809,15 +871,14 @@ footer{
       <span class="prop">"command"</span>: <span class="str">"npx"</span>,
       <span class="prop">"args"</span>: [<span class="str">"@limeade-labs/sparkui"</span>, <span class="str">"mcp"</span>],
       <span class="prop">"env"</span>: {
-        <span class="prop">"SPARKUI_URL"</span>: <span class="str">"https://your-server.com"</span>,
+        <span class="prop">"SPARKUI_URL"</span>: <span class="str">"https://your-sparkui-server.com"</span>,
         <span class="prop">"SPARKUI_TOKEN"</span>: <span class="str">"spk_your_token"</span>
       }
     }
   }
 }
 
-<span class="cm">// Restart Claude Desktop. That's it.</span>
-<span class="cm">// Try: "Create a poll asking my team about lunch options"</span></pre>
+<span class="cm">// Restart Claude. Try: "Create a poll asking my team about lunch"</span></pre>
       </div>
     </div>
 
@@ -825,13 +886,11 @@ footer{
     <div class="qs-panel" id="qs-claude-code">
       <div class="code-block" style="margin-top:0">
         <span class="code-lang">terminal</span>
-        <pre><span class="cm"># Add SparkUI as an MCP server in Claude Code</span>
-<span class="fn">claude</span> mcp add sparkui \
-  -e SPARKUI_URL=https://your-server.com \
+        <pre><span class="fn">claude</span> mcp add sparkui \
+  -e SPARKUI_URL=https://your-sparkui-server.com \
   -e SPARKUI_TOKEN=spk_your_token \
   -- npx @limeade-labs/sparkui mcp
 
-<span class="cm"># Done. Claude Code now has sparkui_push and sparkui_compose tools.</span>
 <span class="cm"># Try: "Build me a feedback form for the new feature"</span></pre>
       </div>
     </div>
@@ -839,85 +898,58 @@ footer{
     <!-- ChatGPT -->
     <div class="qs-panel" id="qs-chatgpt">
       <div class="code-block" style="margin-top:0">
-        <span class="code-lang">Custom GPT / Actions</span>
-        <pre><span class="cm">// In your Custom GPT → Configure → Actions → Add Action</span>
-<span class="cm">// Import the OpenAPI spec:</span>
+        <span class="code-lang">Custom GPT Actions</span>
+        <pre><span class="cm">// Configure → Actions → Add Action</span>
+<span class="cm">// Import OpenAPI spec from your server:</span>
 
-<span class="prop">Schema URL</span>: <span class="str">https://your-server.com/api/openapi.json</span>
-
-<span class="cm">// Or paste the spec manually — endpoints:</span>
-<span class="fn">POST</span> /api/push          <span class="cm">→ Push a template page</span>
-<span class="fn">POST</span> /api/compose       <span class="cm">→ Compose from components</span>
-<span class="fn">GET</span>  /api/templates     <span class="cm">→ List available templates</span>
+<span class="prop">Schema URL</span>: <span class="str">https://your-sparkui-server.com/api/openapi.json</span>
 
 <span class="cm">// Set Authentication → API Key → Bearer token</span>
-<span class="cm">// Header: Authorization</span>
-<span class="cm">// Value: Bearer spk_your_token</span>
+<span class="cm">// Header: Authorization | Value: Bearer spk_your_token</span>
 
-<span class="cm">// Try: "Create a checkout page for a $29.99 product"</span></pre>
+<span class="cm">// Your GPT gets: push (templates), compose (components), templates (list)</span>
+<span class="cm">// Try: "Create a checkout page for my $29.99 product"</span></pre>
       </div>
     </div>
 
     <!-- Gemini -->
     <div class="qs-panel" id="qs-gemini">
       <div class="code-block" style="margin-top:0">
-        <span class="code-lang">Google Gemini / AI Studio</span>
-        <pre><span class="cm">// Use SparkUI via function calling / tool use</span>
-<span class="cm">// Define the tool in your Gemini function declarations:</span>
-
+        <span class="code-lang">Function Calling</span>
+        <pre><span class="cm">// Add SparkUI as a function declaration:</span>
 {
   <span class="prop">"name"</span>: <span class="str">"sparkui_push"</span>,
-  <span class="prop">"description"</span>: <span class="str">"Generate an interactive web UI page"</span>,
+  <span class="prop">"description"</span>: <span class="str">"Generate an interactive web UI"</span>,
   <span class="prop">"parameters"</span>: {
     <span class="prop">"template"</span>: { <span class="str">"type"</span>: <span class="str">"string"</span> },
     <span class="prop">"data"</span>: { <span class="str">"type"</span>: <span class="str">"object"</span> }
   }
 }
 
-<span class="cm">// In your function handler, forward to the REST API:</span>
-<span class="fn">POST</span> https://your-server.com/api/push
-<span class="prop">Authorization</span>: Bearer spk_your_token
-
-<span class="cm">// Return the URL to Gemini → it shares with the user</span></pre>
+<span class="cm">// Handler forwards to: POST https://your-server.com/api/push</span>
+<span class="cm">// Returns a URL → Gemini shares it with the user</span></pre>
       </div>
     </div>
 
     <!-- Cursor / Windsurf -->
     <div class="qs-panel" id="qs-cursor">
       <div class="code-block" style="margin-top:0">
-        <span class="code-lang">.cursor/mcp.json or .windsurf/mcp.json</span>
+        <span class="code-lang">.cursor/mcp.json</span>
         <pre>{
   <span class="prop">"mcpServers"</span>: {
     <span class="prop">"sparkui"</span>: {
       <span class="prop">"command"</span>: <span class="str">"npx"</span>,
       <span class="prop">"args"</span>: [<span class="str">"@limeade-labs/sparkui"</span>, <span class="str">"mcp"</span>],
       <span class="prop">"env"</span>: {
-        <span class="prop">"SPARKUI_URL"</span>: <span class="str">"https://your-server.com"</span>,
+        <span class="prop">"SPARKUI_URL"</span>: <span class="str">"https://your-sparkui-server.com"</span>,
         <span class="prop">"SPARKUI_TOKEN"</span>: <span class="str">"spk_your_token"</span>
       }
     }
   }
 }
 
-<span class="cm">// Restart the editor. SparkUI tools appear in the agent panel.</span>
+<span class="cm">// Also works with .windsurf/mcp.json — same format.</span>
 <span class="cm">// Try: "Create a comparison table for these 3 API options"</span></pre>
-      </div>
-    </div>
-
-    <!-- OpenClaw -->
-    <div class="qs-panel" id="qs-openclaw">
-      <div class="code-block" style="margin-top:0">
-        <span class="code-lang">terminal</span>
-        <pre><span class="cm"># Install the SparkUI skill</span>
-<span class="fn">openclaw</span> skill add sparkui
-
-<span class="cm"># Set your server URL and token</span>
-<span class="fn">openclaw</span> config set sparkui.url https://your-server.com
-<span class="fn">openclaw</span> config set sparkui.token spk_your_token
-
-<span class="cm"># That's it. Your agent now has sparkui_push and sparkui_compose.</span>
-<span class="cm"># Works across all channels — Slack, Discord, Telegram, iMessage.</span>
-<span class="cm"># Try: "Track my macros for today — 1800 cal target"</span></pre>
       </div>
     </div>
 
@@ -925,9 +957,7 @@ footer{
     <div class="qs-panel" id="qs-rest">
       <div class="code-block" style="margin-top:0">
         <span class="code-lang">any language</span>
-        <pre><span class="cm"># Works with any AI framework, agent, or language</span>
-
-<span class="fn">curl</span> -X POST https://your-server.com/api/push \
+        <pre><span class="fn">curl</span> -X POST https://your-sparkui-server.com/api/push \
   -H <span class="str">"Authorization: Bearer spk_your_token"</span> \
   -H <span class="str">"Content-Type: application/json"</span> \
   -d <span class="str">'{
@@ -938,14 +968,10 @@ footer{
     }
   }'</span>
 
-<span class="cm"># → { "url": "/s/abc123", "fullUrl": "https://...", "expiresAt": "..." }</span>
-<span class="cm"># Share the URL. Listen on WebSocket for results.</span></pre>
+<span class="cm"># → { "url": "/s/abc123", "fullUrl": "https://..." }</span>
+<span class="cm"># Share the link. Listen on WebSocket for results.</span></pre>
       </div>
     </div>
-
-    <p style="text-align:center;margin-top:24px;color:var(--text-dim);font-size:.9rem">
-      Need a server? <code style="color:var(--green)">npx @limeade-labs/sparkui</code> starts one locally in seconds. <a href="https://github.com/limeade-labs/sparkui#readme">Full setup docs →</a>
-    </p>
   </div>
 </section>
 
