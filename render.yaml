@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: sparkui
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3456"
+      - key: SPARKUI_TOKEN
+        generateValue: true
+      - key: SPARKUI_BASE_URL
+        sync: false
+    healthCheckPath: /api/status

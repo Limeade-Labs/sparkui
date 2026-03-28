@@ -300,6 +300,43 @@ See the [`examples/`](./examples/) directory for working scripts:
 
 SparkUI includes an [OpenClaw](https://github.com/openclaw/openclaw) skill for direct agent integration. See [SKILL.md](./SKILL.md) for details.
 
+## Deploy
+
+### One-Click
+
+| Platform | Link |
+|----------|------|
+| **Render** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Limeade-Labs/sparkui) |
+| **Railway** | [Deploy to Railway](https://railway.com/new/github?repo=Limeade-Labs/sparkui) |
+
+### Docker
+
+```bash
+docker build -t sparkui .
+docker run -p 3456:3456 -e SPARKUI_TOKEN=spk_your_secret sparkui
+```
+
+### VPS / Bare Metal
+
+```bash
+git clone https://github.com/Limeade-Labs/sparkui.git
+cd sparkui
+npm install --production
+SPARKUI_TOKEN=spk_your_secret node server.js
+```
+
+SparkUI listens on port 3456 by default (set `PORT` env to change). Put it behind a reverse proxy (Caddy, nginx) for HTTPS.
+
+### OpenClaw Plugin
+
+If you're running [OpenClaw](https://github.com/openclaw/openclaw), SparkUI runs alongside your gateway with zero extra hosting:
+
+```bash
+openclaw plugin add sparkui
+```
+
+Auto-configures URL, token, and agent skill. Done.
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
