@@ -8,6 +8,7 @@ servers:
 proxy:
   ssl: true
   host: sparkui.dev
+  app_port: 3457
   healthcheck:
     path: /up
     interval: 5
