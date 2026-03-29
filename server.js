@@ -25,7 +25,7 @@ const ENV_FILE = path.join(__dirname, '.env');
 if (fs.existsSync(ENV_FILE)) {
   for (const line of fs.readFileSync(ENV_FILE, 'utf-8').split('\n')) {
     const m = line.match(/^([A-Z_]+)=(.+)$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
   }
 }
 
@@ -149,7 +149,9 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Missing or invalid Authorization header' });
   }
   const token = auth.slice(7);
-  if (token !== PUSH_TOKEN) {
+  const tokenBuf = Buffer.from(token);
+  const expectedBuf = Buffer.from(PUSH_TOKEN);
+  if (tokenBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(tokenBuf, expectedBuf)) {
     return res.status(401).json({ error: 'Invalid push token' });
   }
   next();
@@ -383,7 +385,7 @@ async function reloadPagesFromRedis() {
 
 // ── WebSocket ────────────────────────────────────────────────────────────────
 
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 2 * 1024 * 1024 });
 
 // Track clients per page ID
 const pageClients = new Map(); // pageId -> Set<ws>
@@ -400,7 +402,7 @@ function ensurePushSubscription(pageId) {
     // Forward push message to all WS clients watching this page
     const clients = pageClients.get(pageId);
     if (!clients || clients.size === 0) return;
-    const msg = JSON.stringify({ type: 'push', pageId, ...message });
+    const msg = JSON.stringify({ type: 'push', pageId, data: { type: message.type, ...(message.data || {}) } });
     for (const ws of clients) {
       try { ws.send(msg); } catch {}
     }
@@ -885,14 +887,8 @@ app.post('/api/pages/:id/state', async (req, res) => {
   }
   const saved = await savePageState(id, req.body);
   if (saved) {
-    // Broadcast to WS clients for multi-tab sync
-    const clients = pageClients.get(id);
-    if (clients) {
-      const syncMsg = JSON.stringify({ type: 'state_sync', pageId: id, data: req.body });
-      for (const ws of clients) {
-        try { ws.send(syncMsg); } catch {}
-      }
-    }
+    // Skip WS broadcast here — the WS save_state handler already broadcasts
+    // with sender exclusion. The REST caller already has the state locally.
     res.json({ ok: true, pageId: id });
   } else {
     res.status(500).json({ error: 'Failed to save state' });
@@ -971,13 +967,17 @@ app.post('/api/pages/:id/push', requireAuth, async (req, res) => {
     // Publish via Redis pub/sub for WS delivery
     await redisStore.publishPush(id, { type, data: data || {} });
 
-    // Also send directly to connected WS clients as fallback
-    const clients = pageClients.get(id);
+    // Only send directly if Redis pub/sub isn't handling it
     let delivered = 0;
-    if (clients) {
-      const msg = JSON.stringify({ type: 'push', pageId: id, pushType: type, data: data || {} });
-      for (const ws of clients) {
-        try { ws.send(msg); delivered++; } catch {}
+    if (redisStore._isNoop) {
+      const clients = pageClients.get(id);
+      if (clients) {
+        const pushMsg = JSON.stringify({ type: 'push', data: { type, ...(data || {}) } });
+        for (const ws of clients) {
+          if (ws.readyState === 1) {
+            try { ws.send(pushMsg); delivered++; } catch {}
+          }
+        }
       }
     }
 
@@ -1179,7 +1179,10 @@ async function startServer() {
 
 startServer().catch((err) => {
   console.error('Failed to start:', err);
-  process.exit(1);
+  // In plugin mode (loaded via require), don't kill the host process
+  if (!module.parent && !process.env._SPARKUI_PLUGIN_MODE) {
+    process.exit(1);
+  }
 });
 
 // Graceful shutdown

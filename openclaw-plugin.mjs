@@ -115,6 +115,7 @@ export default definePluginEntry({
 
         // Import and start the server
         try {
+          process.env._SPARKUI_PLUGIN_MODE = '1';
           const sparkui = require(resolve(__dirname, "server.js"));
           serverRef = sparkui.server;
 
