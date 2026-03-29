@@ -788,79 +788,72 @@ footer{
   <div class="container">
     <div class="section-label">Quick Start</div>
     <h2 class="section-title">Wire it up in 2 minutes</h2>
-    <p class="section-subtitle">SparkUI works with every major AI platform. OpenClaw users get it with zero config — everyone else just needs an MCP config or a single API call.</p>
+    <p class="section-subtitle">SparkUI works with every major AI platform. Pick your path below.</p>
 
-    <!-- Step 1: Get a Server -->
-    <div style="margin-top:40px;margin-bottom:40px">
-      <h3 style="font-size:1.15rem;font-weight:700;color:var(--text-bright);margin-bottom:20px">
-        <span style="color:var(--green);margin-right:8px">①</span> Get a SparkUI server
-      </h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
-        <div style="background:var(--green-glow);border:1px solid rgba(34,197,94,.3);border-radius:var(--radius);padding:24px;position:relative">
-          <h4 style="color:var(--green);font-size:.95rem;font-weight:700;margin-bottom:8px">OpenClaw Plugin</h4>
-          <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:12px">SparkUI runs alongside your OpenClaw gateway — one command, zero extra hosting, auto-configured.</p>
-          <div class="code-block" style="margin:0;padding:12px 16px">
-            <pre style="font-size:.8rem"><span class="fn">openclaw</span> plugins install @limeade-labs/sparkui</pre>
-          </div>
-          <p style="color:var(--text-dim);font-size:.78rem;margin-top:8px">Auto-configures URL, token, and skill. <a href="https://github.com/Limeade-Labs/sparkui" target="_blank" style="color:var(--green)">Docs →</a></p>
+    <!-- Path A: OpenClaw (recommended, one-step) -->
+    <div style="margin-top:40px;margin-bottom:48px">
+      <div style="background:var(--green-glow);border:1px solid rgba(34,197,94,.3);border-radius:var(--radius);padding:32px;position:relative">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="background:var(--green);color:#000;font-size:.7rem;font-weight:800;padding:3px 10px;border-radius:99px;letter-spacing:.05em">RECOMMENDED</span>
+          <h3 style="font-size:1.15rem;font-weight:700;color:var(--green);margin:0">OpenClaw — One Command, Done</h3>
         </div>
-        <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px">
-          <h4 style="color:var(--text-bright);font-size:.95rem;font-weight:700;margin-bottom:8px">One-Click Deploy</h4>
-          <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:16px">Deploy your own instance to any cloud platform in one click.</p>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <a href="https://render.com/deploy?repo=https://github.com/Limeade-Labs/sparkui" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>▲</span> Deploy to Render</a>
-            <a href="https://railway.com/new/github?repo=Limeade-Labs/sparkui" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>🚂</span> Deploy to Railway</a>
-            <a href="https://github.com/Limeade-Labs/sparkui#deploy" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>🐳</span> Docker / VPS Guide</a>
-          </div>
+        <p style="color:var(--text-dim);font-size:.9rem;line-height:1.6;margin-bottom:16px;max-width:640px">Auto-hosts the server, generates your token, and installs the skill. No Step 2. Your agent gets <code style="color:var(--green);font-size:.85rem">sparkui_push</code> and <code style="color:var(--green);font-size:.85rem">sparkui_compose</code> tools across every channel — Slack, Discord, Telegram, iMessage, WhatsApp.</p>
+        <div class="code-block" style="margin:0;padding:14px 18px;max-width:520px">
+          <pre style="font-size:.85rem"><span class="fn">openclaw</span> plugins install @limeade-labs/sparkui</pre>
         </div>
-        <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px">
-          <h4 style="color:var(--text-bright);font-size:.95rem;font-weight:700;margin-bottom:8px">Run Locally</h4>
-          <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:12px">Try it out on your machine first. No account needed.</p>
-          <div class="code-block" style="margin:0;padding:12px 16px">
-            <pre style="font-size:.8rem"><span class="fn">npx</span> @limeade-labs/sparkui</pre>
-          </div>
-          <p style="color:var(--text-dim);font-size:.78rem;margin-top:8px">Starts on port 3456. Token auto-generated.<br>Use <a href="https://ngrok.com" target="_blank">ngrok</a> or <a href="https://tailscale.com" target="_blank">Tailscale</a> to expose it.</p>
-        </div>
+        <p style="color:var(--text-dim);font-size:.78rem;margin-top:10px"><a href="https://github.com/Limeade-Labs/sparkui" target="_blank" style="color:var(--green)">Plugin docs →</a></p>
       </div>
     </div>
 
-    <!-- Step 2: Connect Your AI -->
-    <h3 style="font-size:1.15rem;font-weight:700;color:var(--text-bright);margin-bottom:20px">
-      <span style="color:var(--green);margin-right:8px">②</span> Connect your AI
-    </h3>
+    <!-- Path B: Other Platforms (two-step) -->
+    <div style="border-top:1px solid var(--bg3);padding-top:40px">
+      <h3 style="font-size:1.1rem;font-weight:700;color:var(--text-bright);margin-bottom:6px">Using another platform?</h3>
+      <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:28px">Two quick steps: get a server, then connect your AI.</p>
 
-    <!-- Platform tabs -->
-    <div class="qs-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
-      <button class="qs-tab active" onclick="showQS('openclaw')" data-tab="openclaw">OpenClaw</button>
-      <button class="qs-tab" onclick="showQS('claude')" data-tab="claude">Claude Desktop</button>
-      <button class="qs-tab" onclick="showQS('claude-code')" data-tab="claude-code">Claude Code</button>
-      <button class="qs-tab" onclick="showQS('chatgpt')" data-tab="chatgpt">ChatGPT</button>
-      <button class="qs-tab" onclick="showQS('gemini')" data-tab="gemini">Gemini</button>
-      <button class="qs-tab" onclick="showQS('cursor')" data-tab="cursor">Cursor / Windsurf</button>
-      <button class="qs-tab" onclick="showQS('rest')" data-tab="rest">REST API</button>
-    </div>
+      <!-- Step 1: Get a Server -->
+      <div style="margin-bottom:36px">
+        <h4 style="font-size:1rem;font-weight:700;color:var(--text-bright);margin-bottom:16px">
+          <span style="color:var(--green);margin-right:8px">①</span> Get a SparkUI server
+        </h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px">
+            <h4 style="color:var(--text-bright);font-size:.95rem;font-weight:700;margin-bottom:8px">One-Click Deploy</h4>
+            <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:16px">Deploy your own instance to any cloud platform in one click.</p>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <a href="https://render.com/deploy?repo=https://github.com/Limeade-Labs/sparkui" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>▲</span> Deploy to Render</a>
+              <a href="https://railway.com/new/github?repo=Limeade-Labs/sparkui" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>🚂</span> Deploy to Railway</a>
+              <a href="https://github.com/Limeade-Labs/sparkui#deploy" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius-sm);color:var(--text-dim);font-size:.82rem;font-weight:600;transition:all .2s"><span>🐳</span> Docker / VPS Guide</a>
+            </div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:24px">
+            <h4 style="color:var(--text-bright);font-size:.95rem;font-weight:700;margin-bottom:8px">Run Locally</h4>
+            <p style="color:var(--text-dim);font-size:.85rem;line-height:1.5;margin-bottom:12px">Try it out on your machine first. No account needed.</p>
+            <div class="code-block" style="margin:0;padding:12px 16px">
+              <pre style="font-size:.8rem"><span class="fn">npx</span> @limeade-labs/sparkui</pre>
+            </div>
+            <p style="color:var(--text-dim);font-size:.78rem;margin-top:8px">Starts on port 3456. Token auto-generated.<br>Use <a href="https://ngrok.com" target="_blank">ngrok</a> or <a href="https://tailscale.com" target="_blank">Tailscale</a> to expose it.</p>
+          </div>
+        </div>
+      </div>
 
-    <!-- OpenClaw -->
-    <div class="qs-panel active" id="qs-openclaw">
-      <div class="code-block" style="margin-top:0">
-        <span class="code-lang">terminal</span>
-        <pre><span class="cm"># Step 1: Copy the SparkUI skill into your agent workspace</span>
-<span class="fn">cp</span> -r node_modules/@limeade-labs/sparkui/skills/sparkui ~/clawd/skills/
+      <!-- Step 2: Connect Your AI -->
+      <h4 style="font-size:1rem;font-weight:700;color:var(--text-bright);margin-bottom:16px">
+        <span style="color:var(--green);margin-right:8px">②</span> Connect your AI
+      </h4>
 
-<span class="cm"># Step 2: Set your SparkUI server URL and token</span>
-<span class="fn">openclaw</span> config set sparkui.url https://your-sparkui-server.com
-<span class="fn">openclaw</span> config set sparkui.token spk_your_token
-
-<span class="cm"># Your agent now has sparkui_push and sparkui_compose tools.</span>
-<span class="cm"># Works across every channel — Slack, Discord, Telegram, iMessage, WhatsApp.</span>
-
-<span class="cm"># 🔜 Soon: `openclaw plugins install @limeade-labs/sparkui`</span>
-<span class="cm">#    One command. Auto-hosts the server, generates token, installs skill.</span></pre>
+      <!-- Platform tabs (no OpenClaw — that's handled above) -->
+      <div class="qs-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+        <button class="qs-tab active" onclick="showQS('claude')" data-tab="claude">Claude Desktop</button>
+        <button class="qs-tab" onclick="showQS('claude-code')" data-tab="claude-code">Claude Code</button>
+        <button class="qs-tab" onclick="showQS('chatgpt')" data-tab="chatgpt">ChatGPT</button>
+        <button class="qs-tab" onclick="showQS('gemini')" data-tab="gemini">Gemini</button>
+        <button class="qs-tab" onclick="showQS('cursor')" data-tab="cursor">Cursor / Windsurf</button>
+        <button class="qs-tab" onclick="showQS('rest')" data-tab="rest">REST API</button>
       </div>
     </div>
 
     <!-- Claude Desktop -->
-    <div class="qs-panel" id="qs-claude">
+    <div class="qs-panel active" id="qs-claude">
       <div class="code-block" style="margin-top:0">
         <span class="code-lang">claude_desktop_config.json</span>
         <pre><span class="cm">// Settings → Developer → Edit Config</span>
