@@ -15,7 +15,7 @@ SparkUI lets AI agents generate interactive web UIs on demand. Instead of walls 
 - ⏱️ **Ephemeral** — pages auto-expire (default 1 hour)
 - 🔄 **Bidirectional** — user actions flow back to the agent in real-time
 - 💾 **Persistent state** — Redis-backed, survives tab closes and server restarts
-- 🧩 **Composable** — 15 components you can mix and match
+- 🧩 **Composable** — 8 components you can mix and match
 - 📱 **Mobile-first** — designed for phones, works everywhere
 - 🔌 **MCP compatible** — works with Claude Desktop, Cursor, Windsurf
 - 🌙 **Dark theme** — easy on the eyes, polished look
@@ -100,6 +100,12 @@ Returns:
 | `workout-timer` | Exercise routine with rounds, rest timer, checklists |
 | `feedback-form` | Multi-field form with star ratings and text inputs |
 | `ws-test` | WebSocket connectivity test page |
+| `poll` | Real-time voting and polling with live results |
+| `shopping-list` | Interactive shopping list with categories and quantities |
+| `comparison` | Side-by-side feature or product comparison |
+| `approval-flow` | Multi-step approval workflow with status tracking |
+| `analytics-dashboard` | Data visualization with charts and KPI cards |
+| `calendar` | Interactive calendar with event management |
 
 ## Compose Custom Pages
 
@@ -326,7 +332,7 @@ SparkUI includes an [OpenClaw](https://github.com/openclaw/openclaw) skill for d
 
 ```bash
 docker build -t sparkui .
-docker run -p 3456:3456 -e SPARKUI_TOKEN=spk_your_secret sparkui
+docker run -p 3457:3457 -e PUSH_TOKEN=spk_your_secret sparkui
 ```
 
 ### VPS / Bare Metal
@@ -367,7 +373,7 @@ Full documentation is available in the [`docs/`](./docs/) directory:
 
 - **[Getting Started](./docs/getting-started.md)** — Install, configure, and push your first page
 - **[API Reference](./docs/api-reference.md)** — REST API and WebSocket protocol
-- **[Templates](./docs/templates.md)** — 5 built-in templates with schemas and examples
+- **[Templates](./docs/templates.md)** — 11 built-in templates with schemas and examples
 - **[Components](./docs/components.md)** — 8 composable components for custom pages
 - **[MCP Setup](./docs/mcp-setup.md)** — Claude Desktop, Cursor, and Windsurf integration
 - **[OpenClaw Setup](./docs/openclaw-setup.md)** — Agent skill integration

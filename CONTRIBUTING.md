@@ -14,7 +14,7 @@ git clone https://github.com/limeade-labs/sparkui.git
 cd sparkui
 npm install
 cp .env.example .env
-# Edit .env — set SPARKUI_PUSH_TOKEN to any random string
+# Edit .env — set PUSH_TOKEN to any random string
 npm start
 ```
 

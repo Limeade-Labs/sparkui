@@ -311,10 +311,10 @@ Health check endpoint. **No authentication required.**
 {
   "status": "ok",
   "service": "sparkui",
-  "version": "1.1.0",
+  "version": "1.3.2",
   "pages": 3,
   "wsClients": 1,
-  "templates": ["macro-tracker", "ws-test", "feedback-form", "checkout", "workout-timer"],
+  "templates": ["macro-tracker", "ws-test", "feedback-form", "checkout", "workout-timer", "poll", "shopping-list", "comparison", "approval-flow", "analytics-dashboard", "calendar"],
   "uptime": 3600
 }
 ```

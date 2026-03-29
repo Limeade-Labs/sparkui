@@ -1,6 +1,6 @@
 # Templates
 
-SparkUI includes 10 built-in templates for common use cases. Each generates a complete, interactive HTML page with dark theme, responsive layout, and WebSocket connectivity.
+SparkUI includes 11 built-in templates for common use cases. Each generates a complete, interactive HTML page with dark theme, responsive layout, and WebSocket connectivity.
 
 Use templates via `POST /api/push` with a `template` name and `data` object.
 

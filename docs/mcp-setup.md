@@ -105,7 +105,7 @@ List available page templates.
 **Returns:**
 
 ```json
-{ "templates": ["macro-tracker", "ws-test", "feedback-form", "checkout", "workout-timer"] }
+{ "templates": ["macro-tracker", "ws-test", "feedback-form", "checkout", "workout-timer", "poll", "shopping-list", "comparison", "approval-flow", "analytics-dashboard", "calendar"] }
 ```
 
 ### `sparkui_list_components`

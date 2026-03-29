@@ -10,7 +10,7 @@ SparkUI lets AI agents create polished, interactive web pages on demand. Instead
 |-------|-------------|
 | [Getting Started](./getting-started.md) | Install, configure, and push your first page |
 | [API Reference](./api-reference.md) | Full REST API and WebSocket protocol documentation |
-| [Templates](./templates.md) | 5 built-in templates with schemas and examples |
+| [Templates](./templates.md) | 11 built-in templates with schemas and examples |
 | [Components](./components.md) | 8 composable components for custom pages |
 | [MCP Setup](./mcp-setup.md) | Use SparkUI from Claude Desktop, Cursor, or Windsurf |
 | [OpenClaw Setup](./openclaw-setup.md) | Integrate SparkUI as an OpenClaw agent skill |

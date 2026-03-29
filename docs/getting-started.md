@@ -20,7 +20,7 @@ npm --version    # 9.0.0 or higher
 
 ```bash
 # Install globally
-npm install -g sparkui
+npm install -g @limeade-labs/sparkui
 
 # Initialize in your project directory
 sparkui init
@@ -101,7 +101,7 @@ You should see:
 ⚡ SparkUI server running on port 3457
    Health: http://localhost:3457/
    Push token: spk_abc12345...6789
-   Templates: macro-tracker, ws-test, feedback-form, checkout, workout-timer
+   Templates: macro-tracker, ws-test, feedback-form, checkout, workout-timer, poll, shopping-list, comparison, approval-flow, analytics-dashboard, calendar
    WebSocket: ws://localhost:3457/ws
 ```
 
@@ -117,10 +117,10 @@ Returns:
 {
   "status": "ok",
   "service": "sparkui",
-  "version": "1.1.0",
+  "version": "1.3.2",
   "pages": 0,
   "wsClients": 0,
-  "templates": ["macro-tracker", "ws-test", "feedback-form", "checkout", "workout-timer"],
+  "templates": ["macro-tracker", "ws-test", "feedback-form", "checkout", "workout-timer", "poll", "shopping-list", "comparison", "approval-flow", "analytics-dashboard", "calendar"],
   "uptime": 5
 }
 ```
@@ -173,7 +173,7 @@ sparkui status
 ## What's Next?
 
 - **[API Reference](./api-reference.md)** — Full endpoint documentation
-- **[Templates](./templates.md)** — Explore all 5 built-in templates
+- **[Templates](./templates.md)** — Explore all 11 built-in templates
 - **[Components](./components.md)** — Build custom pages from composable components
 - **[MCP Setup](./mcp-setup.md)** — Use SparkUI from Claude Desktop or Cursor
 - **[OpenClaw Setup](./openclaw-setup.md)** — Integrate with an OpenClaw agent

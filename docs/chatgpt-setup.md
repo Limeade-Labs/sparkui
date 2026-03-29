@@ -23,7 +23,7 @@ openapi: 3.1.0
 info:
   title: SparkUI
   description: Create ephemeral interactive web pages on demand
-  version: 1.1.0
+  version: 1.3.2
 servers:
   - url: https://your-sparkui-server.com
 paths:
