@@ -65,13 +65,51 @@ const INTERACTIVE_TEMPLATES = new Set([
   'approval-flow', 'checkout', 'shopping-list'
 ]);
 
+// ── Redis Graceful Fallback ───────────────────────────────────────────────────
+
+// No-op Redis store that silently drops all operations (used when Redis is unavailable)
+const noopRedisStore = {
+  client: { ttl: async () => -1 },
+  saveState: async () => true,
+  loadState: async () => null,
+  deleteState: async () => 0,
+  saveMeta: async () => {},
+  loadMeta: async () => null,
+  deleteMeta: async () => {},
+  updateTtl: async () => {},
+  getActivePageIds: async () => [],
+  appendEvent: async () => '0-0',
+  readEvents: async () => [],
+  queueDelivery: async () => '0-0',
+  ensureDeliveryGroup: async () => {},
+  readDelivery: async () => [],
+  ackDelivery: async () => 0,
+  deadLetter: async () => '0-0',
+  publishPush: async () => 0,
+  subscribePush: (_pageId, _cb) => (() => {}),
+  cleanupPage: async () => {},
+  shutdown: async () => {},
+  healthCheck: async () => false,
+  _isNoop: true,
+};
+
+let redisStore;
+let redisInitFailed = false;
+
+try {
+  redisStore = new RedisStore();
+} catch (err) {
+  console.warn(`[sparkui] Redis not available (${err.message}) — running in memory-only mode.`);
+  redisStore = noopRedisStore;
+  redisInitFailed = true;
+}
+
 // ── App ──────────────────────────────────────────────────────────────────────
 
 const app = express();
 const server = http.createServer(app);
 const store = new PageStore();
 const analytics = new AnalyticsStore();
-const redisStore = new RedisStore();
 
 // L1 cache for HTML (in-memory for fast serving)
 const htmlCache = new Map(); // pageId -> html string
@@ -593,7 +631,7 @@ app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'sparkui',
-    version: '1.1.0',
+    version: '1.4.0',
     pages: store.size,
     wsClients: wss.clients.size,
     templates: templates.list(),
@@ -627,16 +665,22 @@ app.get('/up', (req, res) => {
 });
 
 app.get('/api/status', async (req, res) => {
-  const redisHealthy = await redisStore.healthCheck();
+  let redisStatus;
+  if (redisStore._isNoop) {
+    redisStatus = 'unavailable (memory-only mode)';
+  } else {
+    const redisHealthy = await redisStore.healthCheck();
+    redisStatus = redisHealthy ? 'connected' : 'disconnected';
+  }
   res.json({
     status: 'ok',
     service: 'sparkui',
-    version: '1.1.0',
+    version: '1.4.0',
     pages: store.size,
     wsClients: wss.clients.size,
     templates: templates.list(),
     uptime: Math.floor(process.uptime()),
-    redis: redisHealthy ? 'connected' : 'disconnected',
+    redis: redisStatus,
   });
 });
 
@@ -1103,16 +1147,33 @@ app.get('/api/test/echo', requireAuth, (req, res) => {
 // ── Start ────────────────────────────────────────────────────────────────────
 
 async function startServer() {
-  // Check Redis health
-  const redisOk = await redisStore.healthCheck();
+  // Check Redis health (may have been constructed but not reachable)
+  let redisOk = false;
+  if (!redisInitFailed) {
+    try {
+      redisOk = await Promise.race([
+        redisStore.healthCheck(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+      ]);
+    } catch (err) {
+      console.warn(`[sparkui] Redis health check failed (${err.message})`);
+      redisOk = false;
+    }
+  }
+
   if (redisOk) {
     console.log('⚡ Redis connected');
     // Reload pages from Redis
     await reloadPagesFromRedis();
     // Start delivery worker
     await deliveryWorker.start();
+  } else if (!redisInitFailed) {
+    // Redis was constructed but isn't reachable — swap to noop
+    console.warn('⚠️  Redis not available — running in memory-only mode. State persistence and event delivery are disabled.');
+    try { await redisStore.shutdown(); } catch {}
+    redisStore = noopRedisStore;
   } else {
-    console.warn('⚠️  Redis not available — running in degraded mode (in-memory only)');
+    console.warn('⚠️  Redis not available — running in memory-only mode. State persistence and event delivery are disabled.');
   }
 
   server.listen(PORT, () => {
@@ -1144,8 +1205,10 @@ async function shutdown(signal) {
   }
   pushUnsubscribers.clear();
 
-  // Disconnect Redis
-  try { await redisStore.shutdown(); } catch {}
+  // Disconnect Redis (skip if noop)
+  if (!redisStore._isNoop) {
+    try { await redisStore.shutdown(); } catch {}
+  }
 
   server.close(() => {
     store.destroy();

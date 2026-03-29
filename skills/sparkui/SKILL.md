@@ -15,6 +15,12 @@ Use SparkUI when the user needs something **visual** that's better as a web page
 
 If installed via `openclaw plugins install @limeade-labs/sparkui`, the server, push token, and this skill are **auto-configured** — no manual setup needed. The plugin manages the server lifecycle and injects the token automatically.
 
+The plugin also:
+- **Registers `sparkui_push` and `sparkui_compose` agent tools** — create pages without curl
+- **Auto-detects the public URL** from gateway config (Tailscale, remote URL, etc.)
+- **Persists the push token** to OpenClaw config on first run (survives restarts)
+- **Registers gateway proxy routes** at `/sparkui/*` for access through the gateway domain
+
 ### Standalone
 
 When running SparkUI standalone, configure via environment variables (or a `.env` file):
@@ -41,7 +47,29 @@ Use `exec` with `background: true` to start the server if it's down.
 
 ## Step 2: Get the Push Token
 
-The push token is available as the `PUSH_TOKEN` environment variable. If running as an OpenClaw plugin, it's set automatically.
+The push token is available as the `PUSH_TOKEN` environment variable. If running as an OpenClaw plugin, it's set automatically and persisted to the config file. If using the agent tools (recommended), auth is handled automatically — no need to manually use `$PUSH_TOKEN`.
+
+## Using Agent Tools (Recommended)
+
+If installed as an OpenClaw plugin, SparkUI registers two agent tools that handle authentication automatically:
+
+### sparkui_push
+Create a page from a template:
+- `template` (required): Template name (e.g., "macro-tracker", "poll", "checkout")
+- `data` (required): Template-specific data object
+- `ttl` (optional): Time to live in seconds (default: 3600)
+
+### sparkui_compose
+Compose a custom page from components:
+- `title` (required): Page title
+- `sections` (required): Array of `{ type, config }` component sections
+- `ttl` (optional): Time to live in seconds (default: 3600)
+
+Both tools return `{ id, url, fullUrl }` — share the `fullUrl` with the user.
+
+**Note:** When tools are available, prefer them over curl. They handle authentication and URL resolution automatically.
+
+## Manual API Usage
 
 ## Step 3: Push Content
 
