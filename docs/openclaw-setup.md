@@ -1,76 +1,41 @@
 # OpenClaw Setup
 
-Integrate SparkUI as an [OpenClaw](https://github.com/openclaw/openclaw) agent skill so your AI agent can automatically generate interactive web pages during conversations.
+Integrate SparkUI as an [OpenClaw](https://github.com/openclaw/openclaw) plugin so your AI agent can automatically generate interactive web pages during conversations.
 
-## What is OpenClaw?
-
-OpenClaw is an AI agent runtime that connects language models to tools, channels (Slack, Discord, Telegram), and external services. Skills are modular capabilities the agent can invoke — SparkUI is one such skill.
-
-When SparkUI is installed as a skill, the agent can detect when a visual UI would be better than text (dashboards, forms, trackers) and automatically generate a page without being explicitly asked.
-
-## Install SparkUI as an OpenClaw Skill
-
-### 1. Clone SparkUI into your skills directory
+## Install (One Command)
 
 ```bash
-cd ~/your-openclaw-workspace/skills/
-git clone https://github.com/Limeade-Labs/sparkui.git
+openclaw plugins install @limeade-labs/sparkui
+openclaw gateway restart
 ```
 
-Or symlink if SparkUI is already installed elsewhere:
+That's it. The plugin auto-starts the SparkUI server, generates a push token, and registers the agent skill. Your agent can immediately start generating pages.
+
+To see the auto-generated push token and server status:
 
 ```bash
-ln -s /path/to/sparkui ~/your-openclaw-workspace/skills/sparkui
+openclaw plugins inspect sparkui
 ```
 
-### 2. Verify the SKILL.md
+### Optional Configuration
 
-SparkUI includes a `SKILL.md` file that tells the agent how to use it. The key sections are:
+You can customize the plugin via OpenClaw's plugin config:
 
-- **When to Use** — triggers (dashboards, trackers, forms, rich content)
-- **Server Location** — directory, port, config file location
-- **Step-by-step instructions** — check server, get token, push content
-- **Available templates** — template names and data shapes
-- **Composable components** — component types and configs
-
-The agent reads this file automatically when it determines SparkUI is relevant to the task.
-
-### 3. Configure Environment
-
-Ensure the SparkUI server is accessible from the OpenClaw host. The `.env` file should include:
-
-```bash
-PUSH_TOKEN=spk_your_token_here
-SPARKUI_PORT=3457
-SPARKUI_BASE_URL=http://localhost:3457
-
-# For round-trip event callbacks to OpenClaw
-OPENCLAW_HOOKS_URL=http://127.0.0.1:18789/hooks/agent
-OPENCLAW_HOOKS_TOKEN=your_openclaw_hooks_token
-```
-
-### 4. Start the SparkUI Server
-
-```bash
-cd /path/to/sparkui
-node server.js &
-```
-
-Or use the CLI:
-
-```bash
-sparkui start
-```
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `port` | Server port | `3457` |
+| `pushToken` | API token | Auto-generated |
+| `publicUrl` | Public URL (if behind proxy) | `http://localhost:3457` |
+| `redisUrl` | Redis for state persistence | In-memory mode |
 
 ## How the Agent Uses It
 
-Once configured, the agent automatically detects opportunities to use SparkUI:
+Once installed, the agent automatically detects opportunities to use SparkUI:
 
 1. **Agent reads SKILL.md** — on startup or when a relevant task is detected
 2. **Agent checks server health** — `curl http://localhost:3457/`
-3. **Agent loads push token** — `source /path/to/sparkui/.env`
-4. **Agent pushes a page** — via `curl` to the push or compose API
-5. **Agent shares the URL** — sends the `fullUrl` to the user in chat
+3. **Agent pushes a page** — via `curl` to the push or compose API
+4. **Agent shares the URL** — sends the `fullUrl` to the user in chat
 
 The agent decides when to use SparkUI based on the "When to Use" section in SKILL.md:
 
@@ -79,41 +44,6 @@ The agent decides when to use SparkUI based on the "When to Use" section in SKIL
 - ✅ Interactive forms, feedback collection
 - ✅ Anything with progress bars, colors, layouts
 - ❌ Simple text answers, yes/no questions, quick lists
-
-## Example: Macro Tracking Flow
-
-Here's how the agent handles a nutrition tracking request end-to-end:
-
-**User says:** "Log my lunch — chicken salad, 480 cal, 35g protein, 20g fat, 15g carbs"
-
-**Agent does:**
-
-1. Updates the nutrition spreadsheet with the new meal
-2. Reads today's totals from the sheet
-3. Pushes a macro-tracker page:
-
-```bash
-curl -s -X POST http://localhost:3457/api/push \
-  -H "Authorization: Bearer $PUSH_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "template": "macro-tracker",
-    "data": {
-      "date": "2026-03-14",
-      "calories": {"current": 1250, "target": 1900},
-      "protein": {"current": 62, "target": 86},
-      "fat": {"current": 45, "target": 95},
-      "carbs": {"current": 15, "target": 25},
-      "meals": [
-        {"name": "Eggs & bacon", "calories": 450, "time": "6:30 AM"},
-        {"name": "Chicken salad", "calories": 480, "time": "12:00 PM"}
-      ]
-    },
-    "ttl": 7200
-  }'
-```
-
-4. Shares the link: "Logged! Here's your updated dashboard: http://..."
 
 ## Round-Trip Events (OpenClaw Callbacks)
 
@@ -130,7 +60,7 @@ Add `openclaw` config when pushing a page:
   "openclaw": {
     "enabled": true,
     "channel": "slack",
-    "to": "C0AKMF5E0KD",
+    "to": "YOUR_CHANNEL_ID",
     "eventTypes": ["completion"]
   }
 }
@@ -146,32 +76,57 @@ Add `openclaw` config when pushing a page:
 | `eventTypes` | string[] | Events to forward: `["completion"]`, `["event"]`, or both |
 | `sessionKey` | string | Optional session key for routing |
 
-### How It Works
+---
 
-1. Agent pushes a page with `openclaw` config
-2. User opens the page and interacts (fills form, clicks buttons)
-3. Browser sends events via WebSocket to SparkUI server
-4. SparkUI forwards matching events to OpenClaw's `/hooks/agent` endpoint
-5. OpenClaw delivers the message to the specified channel
-6. Agent receives the notification and can respond
+## Manual Setup (Alternative)
 
-### Use Cases
+If you prefer to run SparkUI standalone (without the plugin system), you can set it up manually.
 
-- **Feedback forms** — get notified when user submits a rating
-- **Approval workflows** — user clicks approve/reject buttons
-- **Data collection** — form submissions with structured data
-- **Checklist completion** — notified when all items are checked
+### 1. Install SparkUI
 
-## SKILL.md Reference
+```bash
+npm install -g @limeade-labs/sparkui
+```
 
-The full `SKILL.md` is located at the root of the SparkUI directory. It contains:
+Or clone for development:
 
-- Server location and configuration details
-- Step-by-step instructions for the agent
-- Template data schemas
-- Component reference
-- OpenClaw round-trip configuration
+```bash
+git clone https://github.com/Limeade-Labs/sparkui.git
+cd sparkui
+npm install
+```
 
-The agent reads this file automatically — you don't need to configure it separately.
+### 2. Symlink the Skill
 
-> **Tip:** If you modify the SKILL.md (e.g., to add custom templates or change defaults), the agent will pick up the changes on its next invocation.
+```bash
+ln -s /path/to/sparkui/skills/sparkui ~/your-openclaw-workspace/skills/sparkui
+```
+
+### 3. Configure Environment
+
+Create a `.env` file (or set environment variables):
+
+```bash
+PUSH_TOKEN=spk_your_token_here
+SPARKUI_PORT=3457
+SPARKUI_BASE_URL=http://localhost:3457
+
+# For round-trip event callbacks to OpenClaw
+OPENCLAW_HOOKS_URL=http://127.0.0.1:18789/hooks/agent
+OPENCLAW_HOOKS_TOKEN=your_openclaw_hooks_token
+```
+
+### 4. Start the Server
+
+```bash
+sparkui start
+# or: node server.js
+```
+
+### 5. Restart OpenClaw
+
+```bash
+openclaw gateway restart
+```
+
+The agent will pick up the new skill on next invocation.

@@ -25,7 +25,20 @@ SparkUI lets AI agents generate interactive web UIs on demand. Instead of walls 
 ## Quick Start
 
 ```bash
-# Clone and install
+npx @limeade-labs/sparkui
+# Server running at http://localhost:3457
+```
+
+Or install globally:
+
+```bash
+npm install -g @limeade-labs/sparkui
+sparkui start
+```
+
+### Development Setup
+
+```bash
 git clone https://github.com/limeade-labs/sparkui.git
 cd sparkui
 npm install
@@ -319,20 +332,27 @@ docker run -p 3456:3456 -e SPARKUI_TOKEN=spk_your_secret sparkui
 ### VPS / Bare Metal
 
 ```bash
+npx @limeade-labs/sparkui
+```
+
+Or clone for more control:
+
+```bash
 git clone https://github.com/Limeade-Labs/sparkui.git
 cd sparkui
 npm install --production
-SPARKUI_TOKEN=spk_your_secret node server.js
+PUSH_TOKEN=spk_your_secret node server.js
 ```
 
-SparkUI listens on port 3456 by default (set `PORT` env to change). Put it behind a reverse proxy (Caddy, nginx) for HTTPS.
+SparkUI listens on port 3457 by default (set `SPARKUI_PORT` env to change). Put it behind a reverse proxy (Caddy, nginx) for HTTPS.
 
 ### OpenClaw Plugin
 
 If you're running [OpenClaw](https://github.com/openclaw/openclaw), SparkUI runs alongside your gateway with zero extra hosting:
 
 ```bash
-openclaw plugin add sparkui
+openclaw plugins install @limeade-labs/sparkui
+openclaw gateway restart
 ```
 
 Auto-configures URL, token, and agent skill. Done.

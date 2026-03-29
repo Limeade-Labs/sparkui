@@ -9,10 +9,22 @@ Use SparkUI when the user needs something **visual** that's better as a web page
 
 **Don't use** for simple text answers, yes/no questions, or quick lists that work fine in chat.
 
+## Setup
+
+### OpenClaw Plugin (Recommended)
+
+If installed via `openclaw plugins install @limeade-labs/sparkui`, the server, push token, and this skill are **auto-configured** — no manual setup needed. The plugin manages the server lifecycle and injects the token automatically.
+
+### Standalone
+
+When running SparkUI standalone, configure via environment variables (or a `.env` file):
+- `SPARKUI_PORT` — server port (default: `3457`)
+- `PUSH_TOKEN` — API authentication token
+- `SPARKUI_BASE_URL` — public URL if behind a reverse proxy
+
 ## Server Location
-- **Directory:** `/home/clawd/projects/sparkui/`
-- **Port:** 3457 (configured in .env; override with `SPARKUI_PORT` env)
-- **Config:** Push token is in `/home/clawd/projects/sparkui/.env`
+- **URL:** `http://localhost:${SPARKUI_PORT:-3457}` (default: `http://localhost:3457`)
+- **Port:** 3457 by default; override with `SPARKUI_PORT` env var
 
 ## Step 1: Ensure Server is Running
 
@@ -20,17 +32,16 @@ Use SparkUI when the user needs something **visual** that's better as a web page
 # Check if running
 curl -s http://localhost:3457/ | head -c 200
 
-# If not running, start it:
-cd /home/clawd/projects/sparkui && node server.js &
+# If not running (standalone mode):
+sparkui start
+# or: node server.js &
 ```
 
 Use `exec` with `background: true` to start the server if it's down.
 
 ## Step 2: Get the Push Token
 
-```bash
-source /home/clawd/projects/sparkui/.env  # loads PUSH_TOKEN and SPARKUI_PORT
-```
+The push token is available as the `PUSH_TOKEN` environment variable. If running as an OpenClaw plugin, it's set automatically.
 
 ## Step 3: Push Content
 

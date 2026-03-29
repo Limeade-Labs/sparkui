@@ -1,0 +1,9 @@
+landing/
+screenshots/
+config/
+Dockerfile
+.dockerignore
+.gitignore
+.env
+.env.example.bak
+*.tgz

@@ -37,6 +37,11 @@ export default definePluginEntry({
     const publicUrl = config.publicUrl ?? process.env.SPARKUI_BASE_URL ?? null;
     const redisUrl = config.redisUrl ?? process.env.REDIS_URL ?? null;
 
+    // Log auto-generated token so users can find it
+    if (!config.pushToken && !process.env.PUSH_TOKEN) {
+      api.log?.info?.(`SparkUI push token (auto-generated): ${pushToken}`);
+    }
+
     let serverRef = null;
     let serverReady = false;
 
@@ -129,13 +134,12 @@ export default definePluginEntry({
           send(503, { status: "stopped" });
           return true;
         }
-        try {
-          const resp = await fetch(`http://localhost:${port}/api/status`);
-          const data = await resp.json();
-          send(200, { status: "running", ...data });
-        } catch (err) {
-          send(502, { status: "error", error: err.message });
-        }
+        send(200, {
+          status: "running",
+          port,
+          publicUrl: publicUrl ?? `http://localhost:${port}`,
+          redis: redisUrl ? "configured" : "in-memory",
+        });
         return true;
       },
     });
