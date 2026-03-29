@@ -29,7 +29,7 @@ if (fs.existsSync(ENV_FILE)) {
   }
 }
 
-const PORT = parseInt(process.env.SPARKUI_PORT, 10) || 3456;
+const PORT = parseInt(process.env.SPARKUI_PORT, 10) || 3457;
 
 // Resolve PUSH_TOKEN: env > .env file > generate new
 function resolvePushToken() {
@@ -114,22 +114,8 @@ const analytics = new AnalyticsStore();
 // L1 cache for HTML (in-memory for fast serving)
 const htmlCache = new Map(); // pageId -> html string
 
-// Delivery worker
-const deliveryWorker = new DeliveryWorker(redisStore, {
-  openclawHooksUrl: OPENCLAW_HOOKS_URL,
-  openclawHooksToken: OPENCLAW_HOOKS_TOKEN,
-  getPageMeta: async (pageId) => redisStore.loadMeta(pageId),
-  getPageCallback: (pageId) => {
-    const page = store.get(pageId);
-    if (!page) return null;
-    return { callbackUrl: page.callbackUrl, callbackToken: page.callbackToken };
-  },
-  getPageOpenclaw: (pageId) => {
-    const page = store.get(pageId);
-    if (!page) return null;
-    return page.openclaw || null;
-  },
-});
+// Delivery worker (constructed in startServer() after Redis health check)
+let deliveryWorker = null;
 
 // Middleware
 app.use(express.json({ limit: '2mb' }));
@@ -201,10 +187,14 @@ async function loadPageState(pageId) {
   }
 }
 
-// Clean up state when pages expire
+// Clean up state and caches when pages expire
 setInterval(() => {
   // The in-memory store's sweep handles page expiry;
-  // Redis keys expire via TTL automatically
+  // Redis keys expire via TTL automatically.
+  // Clean up htmlCache entries for expired pages.
+  for (const [id] of htmlCache) {
+    if (!store.get(id)) htmlCache.delete(id);
+  }
 }, 60_000).unref();
 
 // ── Event & Delivery Helpers ─────────────────────────────────────────────────
@@ -583,24 +573,6 @@ function notifyPageDestroy(pageId) {
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 // Landing page
-// ── FreshBooks OAuth Callback ────────────────────────────────────────────────
-app.get('/freshbooks/callback', (req, res) => {
-  const code = req.query.code;
-  if (!code) {
-    return res.status(400).send('Missing authorization code');
-  }
-  // Save code to file for pickup
-  const cbFile = path.join(__dirname, 'freshbooks', 'auth-code.txt');
-  fs.writeFileSync(cbFile, code, 'utf-8');
-  res.send(`
-    <html><body style="font-family: sans-serif; text-align: center; padding: 60px;">
-      <h1>✅ FreshBooks Authorization Received</h1>
-      <p>Auth code captured. Ron is exchanging it for tokens now.</p>
-      <p style="color: #666;">You can close this tab.</p>
-    </body></html>
-  `);
-});
-
 app.get('/', (req, res) => {
   const landingPath = path.join(__dirname, 'landing', 'index.html');
   if (fs.existsSync(landingPath)) {
@@ -903,6 +875,8 @@ app.patch('/api/pages/:id', requireAuth, async (req, res) => {
 // ── Page State REST Endpoints ─────────────────────────────────────────────────
 
 // Save page state
+// TODO v1.5: Add page-scoped tokens for state/event POST auth.
+// Currently validates page exists but doesn't authenticate the caller.
 app.post('/api/pages/:id/state', async (req, res) => {
   const { id } = req.params;
   const page = store.get(id);
@@ -939,6 +913,8 @@ app.get('/api/pages/:id/state', async (req, res) => {
 // ── Event REST Endpoints (NEW) ───────────────────────────────────────────────
 
 // POST /api/pages/:id/events — accept events from client via REST
+// TODO v1.5: Add page-scoped tokens for state/event POST auth.
+// Currently validates page exists but doesn't authenticate the caller.
 app.post('/api/pages/:id/events', async (req, res) => {
   const { id } = req.params;
   const page = store.get(id);
@@ -1165,7 +1141,22 @@ async function startServer() {
     console.log('⚡ Redis connected');
     // Reload pages from Redis
     await reloadPagesFromRedis();
-    // Start delivery worker
+    // Construct and start delivery worker with verified Redis connection
+    deliveryWorker = new DeliveryWorker(redisStore, {
+      openclawHooksUrl: OPENCLAW_HOOKS_URL,
+      openclawHooksToken: OPENCLAW_HOOKS_TOKEN,
+      getPageMeta: async (pageId) => redisStore.loadMeta(pageId),
+      getPageCallback: (pageId) => {
+        const page = store.get(pageId);
+        if (!page) return null;
+        return { callbackUrl: page.callbackUrl, callbackToken: page.callbackToken };
+      },
+      getPageOpenclaw: (pageId) => {
+        const page = store.get(pageId);
+        if (!page) return null;
+        return page.openclaw || null;
+      },
+    });
     await deliveryWorker.start();
   } else if (!redisInitFailed) {
     // Redis was constructed but isn't reachable — swap to noop
@@ -1197,7 +1188,7 @@ async function shutdown(signal) {
   clearInterval(WS_PING_INTERVAL);
 
   // Stop delivery worker
-  try { await deliveryWorker.stop(); } catch {}
+  if (deliveryWorker) { try { await deliveryWorker.stop(); } catch {} }
 
   // Clean up push subscriptions
   for (const [, unsub] of pushUnsubscribers) {

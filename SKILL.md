@@ -17,9 +17,8 @@ If installed via `openclaw plugins install @limeade-labs/sparkui`, the server, p
 
 The plugin also:
 - **Registers `sparkui_push` and `sparkui_compose` agent tools** — create pages without curl
-- **Auto-detects the public URL** from gateway config (Tailscale, remote URL, etc.)
+- **Auto-detects the public URL** from plugin config or `SPARKUI_BASE_URL` env var
 - **Persists the push token** to OpenClaw config on first run (survives restarts)
-- **Registers gateway proxy routes** at `/sparkui/*` for access through the gateway domain
 
 ### Standalone
 
@@ -265,7 +264,7 @@ curl -s -X POST http://localhost:3457/api/pages/PAGE_ID/push \
 curl -s -X POST http://localhost:3457/api/pages/PAGE_ID/push \
   -H "Authorization: Bearer $PUSH_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"type": "slot", "data": {"id": "status_badge", "html": "<span>Approved ✓</span>"}}'
+  -d '{"type": "slot", "data": {"selector": "#status_badge", "html": "<span>Approved ✓</span>"}}'
 
 # Force page reload
 curl -s -X POST http://localhost:3457/api/pages/PAGE_ID/push \
