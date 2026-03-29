@@ -117,20 +117,26 @@ export default definePluginEntry({
 
     // Register an HTTP health route on the gateway
     api.registerHttpRoute({
-      method: "GET",
       path: "/plugins/sparkui/status",
+      auth: "plugin",
       handler: async (_req, res) => {
+        const send = (code, obj) => {
+          res.statusCode = code;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(obj));
+        };
         if (!serverReady) {
-          res.status(503).json({ status: "stopped" });
-          return;
+          send(503, { status: "stopped" });
+          return true;
         }
         try {
           const resp = await fetch(`http://localhost:${port}/api/status`);
           const data = await resp.json();
-          res.json({ status: "running", ...data });
+          send(200, { status: "running", ...data });
         } catch (err) {
-          res.status(502).json({ status: "error", error: err.message });
+          send(502, { status: "error", error: err.message });
         }
+        return true;
       },
     });
   },
