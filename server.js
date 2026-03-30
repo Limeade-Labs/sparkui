@@ -2,6 +2,7 @@
 
 const http = require('http');
 const crypto = require('crypto');
+const { EventEmitter } = require('events');
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -64,6 +65,12 @@ const INTERACTIVE_TEMPLATES = new Set([
   'workout-timer', 'feedback-form', 'poll',
   'approval-flow', 'checkout', 'shopping-list'
 ]);
+
+// ── Event Bus ─────────────────────────────────────────────────────────────────
+
+// In-process event emitter so the plugin can subscribe to completion events
+// without HTTP polling or WebSocket connections.
+const eventBus = new EventEmitter();
 
 // ── Redis Graceful Fallback ───────────────────────────────────────────────────
 
@@ -205,6 +212,17 @@ setInterval(() => {
  * Record event and queue for delivery (replaces direct HTTP forwarding).
  */
 async function recordAndQueueEvent(pageId, type, data) {
+  // Emit on in-process event bus (plugin subscribes to this)
+  const page = store.get(pageId);
+  const pageMeta = page ? (page.meta || {}) : {};
+  eventBus.emit('sparkui:event', {
+    pageId,
+    type,
+    data,
+    template: pageMeta.template || null,
+    title: pageMeta.title || null,
+  });
+
   try {
     // Write to event stream
     await redisStore.appendEvent(pageId, type, data);
@@ -1216,4 +1234,4 @@ async function shutdown(signal) {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-module.exports = { app, server };
+module.exports = { app, server, eventBus, store };
