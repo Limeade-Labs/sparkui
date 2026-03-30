@@ -75,7 +75,8 @@ function approvalFlow(data = {}) {
       ${description ? `<p style="color:#aaa;font-size:0.95rem;line-height:1.6">${escHtml(description)}</p>` : ''}
     </div>
 
-    <!-- Request details card -->
+    <!-- Request details card (hidden when no content) -->
+    ${(requester || amount || details.length > 0) ? `
     <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px;margin-bottom:24px">
       ${requester ? `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #222">
@@ -92,14 +93,15 @@ function approvalFlow(data = {}) {
         <div style="color:#666;font-size:0.8rem;margin-top:4px">Amount / Impact</div>
       </div>` : ''}
 
+      ${details.length > 0 ? `
       <div id="details-section">
         ${details.map(d => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #1a1a1a">
           <span style="color:#888;font-size:0.88rem">${escHtml(d.label)}</span>
           <span style="color:#eee;font-size:0.88rem;font-weight:500;text-align:right">${escHtml(d.value)}</span>
         </div>`).join('')}
-      </div>
-    </div>
+      </div>` : ''}
+    </div>` : ''}
 
     <!-- Comment field -->
     <div id="comment-section" style="margin-bottom:20px;${isPending ? '' : 'display:none'}">
