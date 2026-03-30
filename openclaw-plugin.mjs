@@ -7,6 +7,11 @@
  * It wraps the existing SparkUI Express server and exposes it as a
  * managed service within the OpenClaw plugin lifecycle.
  *
+ * v1.5.0 — Completion event routing (#422):
+ *   - Tracks originating session/channel when pages are created
+ *   - Subscribes to server eventBus for completion events
+ *   - Routes formatted event summaries back to originating chat
+ *
  * v1.4.0 — Zero-config sprint:
  *   - Token auto-persistence to OpenClaw config
  *   - Native agent tools (sparkui_push, sparkui_compose)
@@ -64,6 +69,10 @@ export default definePluginEntry({
     let resolvedPublicUrl = null;
     let serverRef = null;
     let serverReady = false;
+    let eventBusRef = null;
+
+    // Map pageId → { sessionId, channelId } for routing events back
+    const pageSessionMap = new Map();
 
     // ── Managed Service ─────────────────────────────────────────────────
 
@@ -118,6 +127,7 @@ export default definePluginEntry({
           process.env._SPARKUI_PLUGIN_MODE = '1';
           const sparkui = require(resolve(__dirname, "server.js"));
           serverRef = sparkui.server;
+          eventBusRef = sparkui.eventBus || null;
 
           // Wait for server to actually be listening
           await new Promise((resolve, reject) => {
@@ -141,6 +151,15 @@ export default definePluginEntry({
           });
 
           serverReady = true;
+
+          // Subscribe to completion events from the server's in-process event bus
+          if (eventBusRef) {
+            eventBusRef.on('sparkui:event', (evt) => {
+              handleSparkuiEvent(evt);
+            });
+            api.log?.info?.('SparkUI: completion event routing active');
+          }
+
           api.log?.info?.(
             `SparkUI server started on port ${port}` +
               (resolvedPublicUrl
@@ -169,6 +188,11 @@ export default definePluginEntry({
       },
 
       async stop() {
+        if (eventBusRef) {
+          eventBusRef.removeAllListeners('sparkui:event');
+          eventBusRef = null;
+        }
+        pageSessionMap.clear();
         if (serverRef) {
           return new Promise((res) => {
             const timeout = setTimeout(() => {
@@ -253,7 +277,7 @@ export default definePluginEntry({
         },
         required: ["template", "data"],
       },
-      async execute(_id, params) {
+      async execute(_id, params, context) {
         if (!serverReady || !pushToken) {
           return {
             content: [
@@ -284,6 +308,19 @@ export default definePluginEntry({
               ],
             };
           }
+
+          // Track originating session for completion event routing
+          if (result.id) {
+            const session = context?.session ?? api.session ?? null;
+            if (session) {
+              pageSessionMap.set(result.id, {
+                sessionId: session.id ?? session.sessionId ?? null,
+                channelId: session.channelId ?? session.channel ?? null,
+                template: params.template || null,
+              });
+            }
+          }
+
           const baseUrl = resolvedPublicUrl || `http://localhost:${port}`;
           const fullUrl = `${baseUrl}${result.url}`;
           return {
@@ -342,7 +379,7 @@ export default definePluginEntry({
         },
         required: ["title", "sections"],
       },
-      async execute(_id, params) {
+      async execute(_id, params, context) {
         if (!serverReady || !pushToken) {
           return {
             content: [
@@ -373,6 +410,19 @@ export default definePluginEntry({
               ],
             };
           }
+
+          // Track originating session for completion event routing
+          if (result.id) {
+            const session = context?.session ?? api.session ?? null;
+            if (session) {
+              pageSessionMap.set(result.id, {
+                sessionId: session.id ?? session.sessionId ?? null,
+                channelId: session.channelId ?? session.channel ?? null,
+                template: null,
+              });
+            }
+          }
+
           const baseUrl = resolvedPublicUrl || `http://localhost:${port}`;
           const fullUrl = `${baseUrl}${result.url}`;
           return {
@@ -392,5 +442,93 @@ export default definePluginEntry({
         }
       },
     });
+
+    // ── Completion Event Routing ───────────────────────────────────────
+
+    /**
+     * Format a completion event into a human-readable summary for chat.
+     */
+    function formatEventSummary(evt) {
+      const { type, data, template, title } = evt;
+      const pageLabel = title || template || 'page';
+
+      if (type !== 'completion') {
+        return `[SparkUI] Event on "${pageLabel}": ${type}`;
+      }
+
+      switch (template) {
+        case 'poll': {
+          const option = data?.option ?? data?.selected ?? data?.value ?? 'unknown';
+          const totalVotes = data?.totalVotes ?? data?.votes ?? null;
+          const question = title || data?.question || 'Poll';
+          return totalVotes != null
+            ? `New vote on "${question}": ${option} selected (now at ${totalVotes} votes total)`
+            : `New vote on "${question}": ${option} selected`;
+        }
+        case 'feedback-form': {
+          const rating = data?.rating ?? data?.stars ?? null;
+          const comment = data?.comment ?? data?.feedback ?? data?.text ?? '';
+          const ratingStr = rating != null ? `${rating}/5 stars` : '';
+          const commentStr = comment ? ` — "${comment}"` : '';
+          return `New feedback received${ratingStr ? ': ' + ratingStr : ''}${commentStr}`;
+        }
+        case 'approval-flow': {
+          const action = data?.action ?? data?.decision ?? data?.status ?? 'unknown';
+          const approver = data?.approver ?? data?.name ?? data?.user ?? 'someone';
+          return `Item ${action} by ${approver}`;
+        }
+        case 'checkout': {
+          const total = data?.total ?? data?.amount ?? null;
+          return total != null
+            ? `Checkout completed ($${total})`
+            : 'Checkout completed';
+        }
+        case 'shopping-list': {
+          const checked = data?.checkedCount ?? data?.completed ?? null;
+          const total = data?.totalCount ?? data?.total ?? null;
+          return checked != null && total != null
+            ? `Shopping list updated: ${checked}/${total} items checked`
+            : 'Shopping list updated';
+        }
+        default: {
+          const summary = data ? JSON.stringify(data).slice(0, 120) : '';
+          return `[SparkUI] Completion on "${pageLabel}"${summary ? ': ' + summary : ''}`;
+        }
+      }
+    }
+
+    /**
+     * Handle a SparkUI event from the server's in-process event bus.
+     * Routes completion events back to the originating chat session.
+     */
+    function handleSparkuiEvent(evt) {
+      const { pageId, type } = evt;
+
+      // Only route completion events back to chat
+      if (type !== 'completion') return;
+
+      const sessionInfo = pageSessionMap.get(pageId);
+      const message = formatEventSummary(evt);
+
+      if (sessionInfo && api.sendMessage) {
+        api.sendMessage({
+          text: message,
+          sessionId: sessionInfo.sessionId,
+          channelId: sessionInfo.channelId,
+        }).catch((err) => {
+          api.log?.warn?.(`SparkUI: failed to route event to session: ${err.message}`);
+        });
+      } else if (api.sendMessage) {
+        // No session tracked (page created outside plugin tools) — broadcast
+        api.sendMessage({ text: message }).catch((err) => {
+          api.log?.warn?.(`SparkUI: failed to send event message: ${err.message}`);
+        });
+      } else {
+        // api.sendMessage not available — log for debugging
+        // TODO(#422): OpenClaw plugin SDK does not expose sendMessage yet.
+        // When it does, remove this fallback. For now, log the event.
+        api.log?.info?.(`SparkUI completion event (no sendMessage API): ${message}`);
+      }
+    }
   },
 });
