@@ -178,33 +178,34 @@ function feedbackForm(data = {}) {
         }
       }
 
-      // Check localStorage for previous submission
+      // Check localStorage for previous submission — act immediately (no server round-trip)
       var localSubmission = null;
       try {
         var stored = localStorage.getItem(LS_KEY);
         if (stored) localSubmission = JSON.parse(stored);
       } catch(e) {}
 
-      // Load persisted state
+      if (localSubmission) {
+        document.getElementById('feedback-form').style.display = 'none';
+        document.getElementById('success-msg').style.display = 'block';
+        showOwnSubmission(localSubmission.rating, localSubmission.feedback);
+      }
+
+      // Load persisted state (for response count + server-side data)
       if (window.sparkui && sparkui.loadState) {
         sparkui.loadState().then(function(state) {
           if (state && state.responseCount) {
             responseCount = state.responseCount;
             updateResponseCount();
           }
-          if (localSubmission) {
-            document.getElementById('feedback-form').style.display = 'none';
-            document.getElementById('success-msg').style.display = 'block';
-            showOwnSubmission(localSubmission.rating, localSubmission.feedback);
-          } else if (state && state.submitted && !localSubmission) {
+          if (!localSubmission && state && state.submitted) {
             // Server says submitted but no local record — different browser submitted
             // Show the form (this browser hasn't submitted yet)
             updateResponseCount();
           }
         });
       } else if (localSubmission) {
-        document.getElementById('feedback-form').style.display = 'none';
-        document.getElementById('success-msg').style.display = 'block';
+        // sparkui not available but we already handled localStorage above
         showOwnSubmission(localSubmission.rating, localSubmission.feedback);
       }
     });
