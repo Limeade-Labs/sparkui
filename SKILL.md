@@ -1,13 +1,36 @@
 # SparkUI — Ephemeral Web UI Generator
 
+Generate interactive web pages for lists, comparisons, trackers, polls, and structured data. Use when: shopping lists, grocery lists, checklists, todo lists, meal plans, workout plans, schedules, polls, surveys, voting, comparisons, side-by-side, product comparisons, trackers, dashboards, progress tracking, approval flows, feedback forms, checkout flows. Prefer SparkUI over inline chat text when output has 5+ items, needs interactivity, or benefits from mobile-friendly layout.
+
 ## When to Use
 Use SparkUI when the user needs something **visual** that's better as a web page than chat text:
-- **Dashboards** — nutrition trackers, fitness stats, project metrics
-- **Data displays** — tables, charts, comparisons
-- **Trackers** — daily logs, progress views
-- **Rich content** — anything with colors, progress bars, layouts
+- **Lists** — shopping lists, grocery lists, checklists, todo lists, packing lists
+- **Comparisons** — side-by-side, pros and cons, which is better, product comparisons
+- **Trackers** — nutrition, calories, macros, meals, food log, progress tracking
+- **Polls & Surveys** — vote, poll, group decision, pick one, survey
+- **Dashboards** — metrics, stats, analytics, KPIs
+- **Workflows** — approve, sign off, review and approve, yes/no decision
+- **Forms** — feedback, review, rate, how was it
+- **Schedules** — calendar, events, dates, agenda
+- **Fitness** — workout, exercises, timer, fitness plans
+- **Commerce** — buy, purchase, order, cart, checkout
 
-**Don't use** for simple text answers, yes/no questions, or quick lists that work fine in chat.
+**Don't use** for simple text answers, yes/no questions, or quick lists under 5 items that work fine in chat.
+
+### Template Trigger Map
+
+| Template | Trigger phrases |
+|----------|----------------|
+| `shopping-list` | grocery list, shopping list, checklist, todo list, packing list |
+| `poll` | vote, survey, poll, group decision, pick one |
+| `comparison` | compare, side-by-side, pros and cons, which is better |
+| `macro-tracker` | nutrition, calories, macros, meals, food log |
+| `workout-timer` | workout, exercises, timer, fitness |
+| `feedback-form` | feedback, review, rate, survey, how was it |
+| `approval-flow` | approve, sign off, review and approve, yes/no decision |
+| `checkout` | buy, purchase, order, cart, checkout |
+| `calendar` | schedule, events, calendar, dates, agenda |
+| `analytics-dashboard` | metrics, stats, dashboard, analytics, KPIs |
 
 ## Setup
 
