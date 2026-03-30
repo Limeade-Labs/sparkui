@@ -31,6 +31,7 @@ function poll(data = {}) {
   const multiSelect = !!data.multiSelect;
   const anonymous = data.anonymous !== false;
   const showResults = data.showResults !== false;
+  const hideResultsUntilVoted = data.hideResultsUntilVoted !== false;
   const maxVotes = data.maxVotes || 0;
   const closesAt = data.closesAt || '';
 
@@ -79,6 +80,12 @@ function poll(data = {}) {
       <p style="color:#00ff88;font-size:0.95rem;font-weight:500">Vote submitted!</p>
     </div>
 
+    <!-- Already voted notice -->
+    <div id="already-voted-notice" style="display:none;text-align:center;margin-top:20px;padding:16px;background:#1a2e1a;border:1px solid #2d5a2d;border-radius:10px">
+      <p style="color:#66bb6a;font-size:0.95rem;font-weight:500;margin-bottom:4px">You have already voted</p>
+      <p style="color:#888;font-size:0.8rem">Your selection is highlighted below</p>
+    </div>
+
     <!-- Footer -->
     <div style="text-align:center;margin-top:28px;padding-top:16px;border-top:1px solid #222">
       <span style="font-size:0.8rem;color:#555">Powered by SparkUI ⚡</span>
@@ -94,6 +101,7 @@ function poll(data = {}) {
       }
       .poll-option:hover { border-color:#444; }
       .poll-option.selected { border-color:#6366f1;background:#1e1b4b; }
+      .poll-option.voted { border-color:#22c55e;background:#14532d; }
       .poll-option .check {
         width:22px;height:22px;border-radius:${multiSelect ? '4px' : '50%'};
         border:2px solid #444;display:flex;align-items:center;justify-content:center;
@@ -125,6 +133,7 @@ function poll(data = {}) {
       var multiSelect = ${multiSelect};
       var anonymous = ${anonymous};
       var showResults = ${showResults};
+      var hideResultsUntilVoted = ${hideResultsUntilVoted};
       var maxVotes = ${maxVotes};
       var closesAt = ${closesAt ? `'${escJs(closesAt)}'` : 'null'};
       var selected = [];
@@ -136,10 +145,14 @@ function poll(data = {}) {
 
       // Check if already voted (localStorage)
       var LS_VOTED_KEY = 'sparkui_poll_voted_' + ${JSON.stringify(pageId)};
+      var LS_SELECTIONS_KEY = 'sparkui_poll_selections_' + ${JSON.stringify(pageId)};
+      var previousSelections = [];
       try {
         if (localStorage.getItem(LS_VOTED_KEY)) {
           voted = true;
         }
+        var storedSel = localStorage.getItem(LS_SELECTIONS_KEY);
+        if (storedSel) previousSelections = JSON.parse(storedSel);
       } catch(e) {}
 
       var optionsEl = document.getElementById('poll-options');
@@ -209,8 +222,11 @@ function poll(data = {}) {
         totalVoters++;
         renderResults();
 
-        // Mark as voted in localStorage
-        try { localStorage.setItem(LS_VOTED_KEY, '1'); } catch(e) {}
+        // Mark as voted in localStorage + save selections
+        try {
+          localStorage.setItem(LS_VOTED_KEY, '1');
+          localStorage.setItem(LS_SELECTIONS_KEY, JSON.stringify(selected));
+        } catch(e) {}
 
         // Send completion via WS (agents listen for this)
         if (window.sparkui) {
@@ -223,6 +239,15 @@ function poll(data = {}) {
         voteBtn.style.display = 'none';
         voteConfirmed.style.display = 'block';
         if (showResults) resultsSection.style.display = 'block';
+
+        // Highlight voted options
+        document.querySelectorAll('.poll-option').forEach(function(el) {
+          var idx = parseInt(el.getAttribute('data-idx'));
+          if (selected.indexOf(idx) >= 0) {
+            el.style.borderColor = '#22c55e';
+            el.style.background = '#14532d';
+          }
+        });
 
         // Disable option clicks
         document.querySelectorAll('.poll-option').forEach(function(el) {
@@ -276,7 +301,7 @@ function poll(data = {}) {
             votes = msg.data.votes;
             if (msg.data.totalVoters !== undefined) totalVoters = msg.data.totalVoters;
             renderResults();
-            if (showResults) resultsSection.style.display = 'block';
+            if (showResults && (!hideResultsUntilVoted || voted)) resultsSection.style.display = 'block';
             if (msg.data.closed) {
               closed = true;
               if (!voted) {
@@ -292,7 +317,7 @@ function poll(data = {}) {
               votes = stateData.votes;
               if (stateData.totalVoters !== undefined) totalVoters = stateData.totalVoters;
               renderResults();
-              if (showResults) resultsSection.style.display = 'block';
+              if (showResults && (!hideResultsUntilVoted || voted)) resultsSection.style.display = 'block';
             }
           }
         });
@@ -303,24 +328,33 @@ function poll(data = {}) {
             votes = state.votes;
             if (state.totalVoters !== undefined) totalVoters = state.totalVoters;
             renderResults();
-            if (showResults) resultsSection.style.display = 'block';
+            if (showResults && (!hideResultsUntilVoted || voted)) resultsSection.style.display = 'block';
           }
         });
       }
 
-      // If already voted, show results and hide vote UI
+      var alreadyVotedNotice = document.getElementById('already-voted-notice');
+
+      // If already voted, show already-voted state with highlighted selections
       if (voted) {
         voteBtn.style.display = 'none';
-        voteConfirmed.style.display = 'block';
+        alreadyVotedNotice.style.display = 'block';
         if (showResults) resultsSection.style.display = 'block';
         document.querySelectorAll('.poll-option').forEach(function(el) {
           el.style.cursor = 'default';
           el.style.pointerEvents = 'none';
+          var idx = parseInt(el.getAttribute('data-idx'));
+          if (previousSelections.indexOf(idx) >= 0) {
+            el.style.borderColor = '#22c55e';
+            el.style.background = '#14532d';
+            el.classList.add('selected');
+            el.querySelector('svg').style.display = 'block';
+          }
         });
       }
 
-      // Show results initially if configured
-      if (showResults && !voted) {
+      // Show results initially only if configured AND (already voted OR hideResultsUntilVoted is off)
+      if (showResults && (!hideResultsUntilVoted || voted)) {
         renderResults();
       }
 
@@ -374,6 +408,7 @@ poll.schema = {
     multiSelect: { type: 'boolean', description: 'Allow selecting multiple options', default: false },
     anonymous: { type: 'boolean', description: 'Anonymous voting (no name required)', default: true },
     showResults: { type: 'boolean', description: 'Show live results', default: true },
+    hideResultsUntilVoted: { type: 'boolean', description: 'Hide results until the visitor has voted (prevents bias)', default: true },
     maxVotes: { type: 'number', description: 'Auto-close after this many votes' },
     closesAt: { type: 'string', description: 'ISO timestamp to auto-close the poll', example: '2026-04-01T00:00:00Z' },
     subtitle: { type: 'string', description: 'Optional subtitle text' },

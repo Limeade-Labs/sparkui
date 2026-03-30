@@ -12,6 +12,7 @@ function feedbackForm(data = {}) {
   const title = data.title || data.name || data.label || 'Feedback';
   const subtitle = data.subtitle || 'We\'d love to hear from you.';
   const questions = data.questions || null; // optional array of extra text fields
+  const collectName = !!data.collectName;
   const _og = data._og || {};
 
   let extraFields = '';
@@ -33,7 +34,16 @@ function feedbackForm(data = {}) {
       <p style="color:#888;font-size:0.95rem">${subtitle}</p>
     </div>
 
+    <!-- Response count -->
+    <div id="response-count" style="text-align:center;margin-bottom:16px;color:#666;font-size:0.85rem"></div>
+
     <form id="feedback-form" style="background:#1a1a1a;padding:20px;border-radius:12px;border:1px solid #222">
+      <!-- Name (optional) -->
+      <div id="name-section" style="display:${collectName ? 'block' : 'none'};margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;color:#aaa;font-size:0.9rem">Your name</label>
+        <input id="respondent-name" type="text" placeholder="Enter your name" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid #333;background:#111;color:#eee;font-size:1rem;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#333'">
+      </div>
+
       <!-- Rating -->
       <label style="display:block;margin-bottom:10px;color:#aaa;font-size:0.9rem">Rating</label>
       <div id="star-rating" style="display:flex;gap:8px;margin-bottom:20px;justify-content:center">
@@ -61,7 +71,13 @@ function feedbackForm(data = {}) {
     <div id="success-msg" style="display:none;text-align:center;padding:40px 20px">
       <div style="font-size:3rem;margin-bottom:12px">✅</div>
       <h2 style="font-size:1.3rem;margin-bottom:8px">Thank you!</h2>
-      <p style="color:#888">Your feedback has been submitted.</p>
+      <p style="color:#888;margin-bottom:12px">Your feedback has been submitted.</p>
+      <div id="your-submission" style="display:none;text-align:left;background:#1a1a1a;padding:16px;border-radius:10px;border:1px solid #222;margin-top:12px">
+        <p style="color:#666;font-size:0.8rem;margin-bottom:8px">Your submission:</p>
+        <div id="your-rating" style="color:#eee;font-size:0.9rem;margin-bottom:4px"></div>
+        <div id="your-feedback" style="color:#aaa;font-size:0.85rem;font-style:italic"></div>
+      </div>
+      <p style="color:#555;font-size:0.8rem;margin-top:16px">Different people can submit from different browsers.</p>
     </div>
   `;
 
@@ -69,7 +85,12 @@ function feedbackForm(data = {}) {
     <script>
     document.addEventListener('DOMContentLoaded', function() {
       var selectedRating = 0;
+      var collectName = ${collectName};
+      var pageId = ${JSON.stringify(pageId)};
+      var LS_KEY = 'sparkui_feedback_' + pageId;
+      var responseCount = 0;
       var stars = document.querySelectorAll('.star-btn');
+      var responseCountEl = document.getElementById('response-count');
 
       function updateStars(value) {
         stars.forEach(function(s) {
@@ -100,11 +121,16 @@ function feedbackForm(data = {}) {
           return;
         }
 
+        var feedbackText = document.getElementById('feedback-text').value;
         var formData = {
           rating: rating,
-          feedback: document.getElementById('feedback-text').value,
+          feedback: feedbackText,
           submittedAt: new Date().toISOString()
         };
+
+        if (collectName) {
+          formData.name = document.getElementById('respondent-name').value.trim();
+        }
 
         ${extraFieldsJs}
 
@@ -113,24 +139,73 @@ function feedbackForm(data = {}) {
           sparkui.sendCompletion(formData);
         }
 
-        // Save state
+        // Increment response count
+        responseCount++;
+
+        // Save state (with response count)
         if (window.sparkui && sparkui.saveState) {
-          sparkui.saveState({ submitted: true, rating: formData.rating, feedback: formData.feedback });
+          sparkui.saveState({ submitted: true, rating: formData.rating, feedback: formData.feedback, responseCount: responseCount });
         }
 
-        // Show success
+        // Store own submission in localStorage
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify({ rating: rating, feedback: feedbackText }));
+        } catch(e) {}
+
+        // Show success with submission details
         document.getElementById('feedback-form').style.display = 'none';
         document.getElementById('success-msg').style.display = 'block';
+        showOwnSubmission(rating, feedbackText);
+        updateResponseCount();
       });
+
+      function showOwnSubmission(rating, feedback) {
+        var sub = document.getElementById('your-submission');
+        if (rating || feedback) {
+          sub.style.display = 'block';
+          var stars = '';
+          for (var s = 0; s < rating; s++) stars += '\u2B50';
+          document.getElementById('your-rating').textContent = 'Rating: ' + stars + ' (' + rating + '/5)';
+          if (feedback) {
+            document.getElementById('your-feedback').textContent = '"' + feedback + '"';
+          }
+        }
+      }
+
+      function updateResponseCount() {
+        if (responseCount > 0) {
+          responseCountEl.textContent = responseCount + (responseCount === 1 ? ' response' : ' responses') + ' collected';
+        }
+      }
+
+      // Check localStorage for previous submission
+      var localSubmission = null;
+      try {
+        var stored = localStorage.getItem(LS_KEY);
+        if (stored) localSubmission = JSON.parse(stored);
+      } catch(e) {}
 
       // Load persisted state
       if (window.sparkui && sparkui.loadState) {
         sparkui.loadState().then(function(state) {
-          if (state && state.submitted) {
+          if (state && state.responseCount) {
+            responseCount = state.responseCount;
+            updateResponseCount();
+          }
+          if (localSubmission) {
             document.getElementById('feedback-form').style.display = 'none';
             document.getElementById('success-msg').style.display = 'block';
+            showOwnSubmission(localSubmission.rating, localSubmission.feedback);
+          } else if (state && state.submitted && !localSubmission) {
+            // Server says submitted but no local record — different browser submitted
+            // Show the form (this browser hasn't submitted yet)
+            updateResponseCount();
           }
         });
+      } else if (localSubmission) {
+        document.getElementById('feedback-form').style.display = 'none';
+        document.getElementById('success-msg').style.display = 'block';
+        showOwnSubmission(localSubmission.rating, localSubmission.feedback);
       }
     });
     </script>
@@ -158,6 +233,7 @@ feedbackForm.schema = {
   properties: {
     title: { type: 'string', description: 'Form title', default: 'Feedback', example: 'How was your experience?' },
     subtitle: { type: 'string', description: 'Subtitle text', default: "We'd love to hear from you.", example: 'Your feedback helps us improve' },
+    collectName: { type: 'boolean', description: 'Show a name input field', default: false },
     questions: {
       type: 'array',
       description: 'Optional extra text fields (labels)',
