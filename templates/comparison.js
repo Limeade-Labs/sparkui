@@ -135,7 +135,7 @@ function comparison(data = {}) {
     <!-- Selection button -->
     <div id="select-section" style="text-align:center;margin-top:8px;margin-bottom:16px">
       ${items.map((item, i) => `
-      <button class="select-btn" data-idx="${i}" style="display:inline-block;margin:4px;padding:10px 20px;border-radius:20px;border:1px solid #333;background:transparent;color:#aaa;font-size:0.85rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#00ff88';this.style.color='#00ff88'" onmouseout="if(!this.classList.contains('chosen')){this.style.borderColor='#333';this.style.color='#aaa'}">
+      <button class="select-btn" data-idx="${i}" style="display:inline-block;margin:4px;padding:10px 20px;border-radius:20px;border:1px solid #333;background:transparent;color:#aaa;font-size:0.85rem;cursor:pointer;transition:all 0.2s" onmouseover="if(!this.classList.contains('chosen')){this.style.borderColor='#00ff88';this.style.color='#00ff88'}" onmouseout="if(!this.classList.contains('chosen')){this.style.borderColor='#333';this.style.color='#aaa'}">
         Choose ${escHtml(item.name)}
       </button>`).join('')}
     </div>
@@ -184,9 +184,17 @@ function comparison(data = {}) {
           var item = items[idx];
           if (!item) return;
 
-          // Highlight chosen
-          selectBtns.forEach(function(b) { b.classList.remove('chosen'); });
+          // Highlight chosen — reset all buttons first (class + inline styles)
+          selectBtns.forEach(function(b) {
+            b.classList.remove('chosen');
+            b.style.borderColor = '#333';
+            b.style.color = '#aaa';
+            b.style.background = 'transparent';
+          });
           this.classList.add('chosen');
+          this.style.borderColor = '#00ff88';
+          this.style.color = '#00ff88';
+          this.style.background = '#00ff8811';
 
           // Show confirmation
           document.getElementById('chosen-text').textContent = 'You chose: ' + item.name;

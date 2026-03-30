@@ -1,6 +1,6 @@
 {
   "name": "@limeade-labs/sparkui",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Ephemeral, purpose-built web UIs generated on demand from chat conversations",
   "main": "server.js",
   "bin": {
@@ -30,7 +30,9 @@
     "skills/"
   ],
   "openclaw": {
-    "extensions": ["./openclaw-plugin.mjs"]
+    "extensions": [
+      "./openclaw-plugin.mjs"
+    ]
   },
   "engines": {
     "node": ">=18"
