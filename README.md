@@ -1,15 +1,19 @@
 # ⚡ SparkUI
 
-**Ephemeral interactive UIs for AI agents.** Generate rich web pages from chat — no app install required.
+**The only way to give AI agents interactive UIs — through just a URL.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/@limeade-labs/sparkui.svg)](https://www.npmjs.com/package/@limeade-labs/sparkui)
+
+> Your agent asks users to "paste your card number in chat." It sends 30 messages to count down a timer. It renders a comparison table that's unreadable on mobile. **AI agents deserve better than text.**
+
+**[Live Demos](https://sparkui.dev#demos)** · **[Docs](https://sparkui.dev/docs)** · **[OpenClaw Plugin](./docs/openclaw-setup.md)** · **[MCP Setup](./docs/mcp-setup.md)**
 
 ---
 
 ## What is SparkUI?
 
-SparkUI lets AI agents generate interactive web UIs on demand. Instead of walls of text, your agent creates a polished, ephemeral web page and shares a link. Users click, interact, and the results flow back to the agent via WebSocket. Pages self-destruct after a configurable TTL.
+SparkUI lets AI agents generate interactive web UIs on demand. The agent pushes a template (or composes from components), gets a URL, and shares it. Users click, interact, and the results flow back to the agent via WebSocket. Pages self-destruct when done. No accounts, no app installs, no cleanup.
 
 - 🎯 **No app install** — just a URL that works in any browser
 - ⏱️ **Ephemeral** — pages auto-expire (default 1 hour)
