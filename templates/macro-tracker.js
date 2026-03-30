@@ -124,7 +124,19 @@ function macroTracker(data) {
     </div>
   `;
 
-  const extraHead = `<style>
+  const mealsJson = JSON.stringify(meals);
+  const macroDataJson = JSON.stringify({ date, calories, protein, fat, carbs, meals });
+
+  const extraHead = `
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Save initial state for persistence across refreshes
+      if (window.sparkui && sparkui.saveState) {
+        sparkui.saveState(${macroDataJson.replace(/</g, '\\x3c')});
+      }
+    });
+    </script>
+    <style>
     .tracker-header { text-align: center; margin-bottom: 24px; }
     .tracker-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
     .tracker-date { color: #888; font-size: 0.9rem; }

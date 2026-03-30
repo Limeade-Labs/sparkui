@@ -229,26 +229,42 @@ function approvalFlow(data = {}) {
           sparkui.sendCompletion(payload);
         }
 
+        // Save state
+        if (window.sparkui && sparkui.saveState) {
+          sparkui.saveState({ decision: pendingAction, comment: comment, decidedAt: payload.decidedAt });
+        }
+
         // Update UI
+        showDecidedState(pendingAction, comment);
+
+        pendingAction = null;
+      });
+
+      function showDecidedState(decision, comment) {
+        var rm = resultMessages[decision];
+        if (!rm) return;
         document.getElementById('action-buttons').style.display = 'none';
         document.getElementById('comment-section').style.display = 'none';
-
-        var rm = resultMessages[pendingAction];
         document.getElementById('result-icon').textContent = rm.icon;
         document.getElementById('result-title').style.color = rm.color;
         document.getElementById('result-title').textContent = rm.title;
         document.getElementById('result-text').textContent = comment ? 'Comment: "' + comment + '"' : 'Your decision has been recorded.';
         document.getElementById('result-state').style.display = 'block';
-
-        // Update status badge
         var badge = document.getElementById('status-badge');
         badge.style.background = rm.color + '22';
         badge.style.borderColor = rm.color + '33';
         badge.style.color = rm.color;
         badge.innerHTML = '<span>' + rm.icon + '</span> ' + rm.title;
+      }
 
-        pendingAction = null;
-      });
+      // Load persisted state
+      if (window.sparkui && sparkui.loadState) {
+        sparkui.loadState().then(function(state) {
+          if (state && state.decision) {
+            showDecidedState(state.decision, state.comment);
+          }
+        });
+      }
 
       // WS updates
       if (window.sparkui) {

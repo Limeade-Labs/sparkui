@@ -192,6 +192,11 @@ function comparison(data = {}) {
           document.getElementById('chosen-text').textContent = 'You chose: ' + item.name;
           document.getElementById('chosen-msg').style.display = 'block';
 
+          // Save state
+          if (window.sparkui && sparkui.saveState) {
+            sparkui.saveState({ selectedIndex: idx, selectedItem: item.name });
+          }
+
           // Send via WS
           if (window.sparkui) {
             sparkui.sendCompletion({
@@ -203,6 +208,23 @@ function comparison(data = {}) {
           }
         });
       });
+
+      // Load persisted state
+      if (window.sparkui && sparkui.loadState) {
+        sparkui.loadState().then(function(state) {
+          if (state && typeof state.selectedIndex === 'number' && items[state.selectedIndex]) {
+            var btn = document.querySelector('.select-btn[data-idx="' + state.selectedIndex + '"]');
+            if (btn) {
+              selectBtns.forEach(function(b) { b.classList.remove('chosen'); });
+              btn.classList.add('chosen');
+              btn.style.borderColor = '#00ff88';
+              btn.style.color = '#00ff88';
+            }
+            document.getElementById('chosen-text').textContent = 'You chose: ' + items[state.selectedIndex].name;
+            document.getElementById('chosen-msg').style.display = 'block';
+          }
+        });
+      }
     });
     </script>
   `;

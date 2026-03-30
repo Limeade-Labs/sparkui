@@ -205,6 +205,7 @@ function shoppingList(data = {}) {
         if (!item) return;
         item.checked = !item.checked;
         render();
+        saveItems();
 
         if (window.sparkui) {
           sparkui.send('event', {
@@ -255,6 +256,7 @@ function shoppingList(data = {}) {
           };
           items.push(newItem);
           render();
+          saveItems();
 
           // Clear inputs
           addName.value = '';
@@ -295,13 +297,31 @@ function shoppingList(data = {}) {
             items = msg.data.items;
             nextId = items.length;
             render();
+            saveItems();
           }
         });
+      }
+
+      function saveItems() {
+        if (window.sparkui && sparkui.saveState) {
+          sparkui.saveState({ items: items });
+        }
       }
 
       function escH(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
       render();
+
+      // Load persisted state
+      if (window.sparkui && sparkui.loadState) {
+        sparkui.loadState().then(function(state) {
+          if (state && state.items && state.items.length > 0) {
+            items = state.items;
+            nextId = items.reduce(function(max, i) { return Math.max(max, (i.id || 0) + 1); }, items.length);
+            render();
+          }
+        });
+      }
     });
     </script>
   `;

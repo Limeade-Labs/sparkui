@@ -427,6 +427,19 @@ function calendar(data = {}) {
           if (msg.type === 'update' && msg.data && msg.data.events) {
             events = msg.data.events;
             renderView();
+            if (sparkui.saveState) {
+              sparkui.saveState({ events: events });
+            }
+          }
+        });
+      }
+
+      // Load persisted state (restored events from WS updates)
+      if (window.sparkui && sparkui.loadState) {
+        sparkui.loadState().then(function(state) {
+          if (state && state.events && state.events.length > 0) {
+            events = state.events;
+            renderView();
           }
         });
       }

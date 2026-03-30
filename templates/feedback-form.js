@@ -113,10 +113,25 @@ function feedbackForm(data = {}) {
           sparkui.sendCompletion(formData);
         }
 
+        // Save state
+        if (window.sparkui && sparkui.saveState) {
+          sparkui.saveState({ submitted: true, rating: formData.rating, feedback: formData.feedback });
+        }
+
         // Show success
         document.getElementById('feedback-form').style.display = 'none';
         document.getElementById('success-msg').style.display = 'block';
       });
+
+      // Load persisted state
+      if (window.sparkui && sparkui.loadState) {
+        sparkui.loadState().then(function(state) {
+          if (state && state.submitted) {
+            document.getElementById('feedback-form').style.display = 'none';
+            document.getElementById('success-msg').style.display = 'block';
+          }
+        });
+      }
     });
     </script>
   `;

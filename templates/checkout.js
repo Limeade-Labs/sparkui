@@ -241,6 +241,11 @@ function checkout(data = {}) {
             });
           }
 
+          // Save state
+          if (window.sparkui && sparkui.saveState) {
+            sparkui.saveState({ completed: true, orderId: orderId, total: tot });
+          }
+
           // Show success
           document.getElementById('success-order-id').textContent = 'Order ' + orderId;
           document.getElementById('success-total').textContent = symbol + tot;
@@ -248,6 +253,17 @@ function checkout(data = {}) {
           overlay.style.display = 'flex';
         }, 2000);
       });
+
+      // Load persisted state
+      if (window.sparkui && sparkui.loadState) {
+        sparkui.loadState().then(function(state) {
+          if (state && state.completed) {
+            document.getElementById('success-order-id').textContent = 'Order ' + (state.orderId || '');
+            document.getElementById('success-total').textContent = symbol + (state.total || '0.00');
+            document.getElementById('success-overlay').style.display = 'flex';
+          }
+        });
+      }
     });
     </script>
   `;
