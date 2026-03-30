@@ -1,6 +1,6 @@
 {
   "name": "@limeade-labs/sparkui",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Ephemeral, purpose-built web UIs generated on demand from chat conversations",
   "main": "server.js",
   "bin": {

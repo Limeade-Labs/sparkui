@@ -3,6 +3,7 @@
 const http = require('http');
 const crypto = require('crypto');
 const { EventEmitter } = require('events');
+const PKG_VERSION = require('./package.json').version;
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -623,7 +624,7 @@ app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'sparkui',
-    version: '1.4.2',
+    version: PKG_VERSION,
     pages: store.size,
     wsClients: wss.clients.size,
     templates: templates.list(),
@@ -667,7 +668,7 @@ app.get('/api/status', async (req, res) => {
   res.json({
     status: 'ok',
     service: 'sparkui',
-    version: '1.4.2',
+    version: PKG_VERSION,
     pages: store.size,
     wsClients: wss.clients.size,
     templates: templates.list(),

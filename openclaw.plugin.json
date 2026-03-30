@@ -2,8 +2,10 @@
   "id": "sparkui",
   "name": "SparkUI",
   "description": "Ephemeral, purpose-built web UIs generated on demand from chat conversations",
-  "version": "1.4.1",
-  "skills": ["skills/sparkui"],
+  "version": "1.4.3",
+  "skills": [
+    "skills/sparkui"
+  ],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

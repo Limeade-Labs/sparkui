@@ -2,6 +2,34 @@
 
 All notable changes to SparkUI are documented here.
 
+## [1.4.3] — 2026-03-30
+
+### Fixed
+- `server.js` now reads version from `package.json` dynamically instead of hardcoding it.
+- `openclaw.plugin.json` version synced with `package.json`.
+- `package-lock.json` version synced.
+
+### Changed
+- Published from source repo (`/projects/sparkui/`) — previous 1.4.2 was incorrectly published from the installed extensions directory.
+
+### Documentation
+- Added `docs/PUBLISH.md` — deploy checklist for all future releases.
+- Full CHANGELOG entry for 1.4.2 (was missing).
+
+## [1.4.2] — 2026-03-30
+
+### Fixed
+- Comparison template — radio-button selection was allowing multi-select instead of single-select.
+- Approval template — empty details card rendered when no details/requester/amount provided.
+- State persistence — REST-first loading with localStorage write-through cache and timestamp-based conflict resolution. Server state wins over stale local cache.
+- Stale localStorage no longer overwrites newer server state on reconnect.
+- Comparison select button hover state preserved correctly on chosen items.
+
+### Added
+- Delivery worker — OpenClaw hooks integration (`OPENCLAW_HOOKS_URL` + `OPENCLAW_HOOKS_TOKEN` via `.env`).
+- Delivery worker — human-readable message format for completion events (not raw JSON).
+- Multi-tab state sync via WebSocket `state_sync` messages.
+
 ## [1.4.1] — 2026-03-30
 
 ### Fixed
