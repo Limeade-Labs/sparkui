@@ -1,6 +1,6 @@
 {
   "name": "@limeade-labs/sparkui",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Ephemeral, purpose-built web UIs generated on demand from chat conversations",
   "main": "server.js",
   "bin": {
@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test test/*.test.js"
   },
   "files": [
     "bin/",

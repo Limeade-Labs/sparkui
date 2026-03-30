@@ -605,7 +605,7 @@ app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'sparkui',
-    version: '1.4.0',
+    version: '1.4.1',
     pages: store.size,
     wsClients: wss.clients.size,
     templates: templates.list(),
@@ -649,7 +649,7 @@ app.get('/api/status', async (req, res) => {
   res.json({
     status: 'ok',
     service: 'sparkui',
-    version: '1.4.0',
+    version: '1.4.1',
     pages: store.size,
     wsClients: wss.clients.size,
     templates: templates.list(),

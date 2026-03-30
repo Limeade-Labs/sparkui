@@ -2,6 +2,21 @@
 
 All notable changes to SparkUI are documented here.
 
+## [1.4.1] — 2026-03-30
+
+### Fixed
+- Poll server-side vote aggregation — votes now tally correctly via `saveState`/`loadState`/`state_sync`.
+- Template property fallbacks — all templates accept `name`/`title`/`label`/`text` interchangeably for display fields.
+- State persistence — `shopping-list`, `approval-flow`, `feedback-form`, `checkout`, `comparison`, `calendar`, and `macro-tracker` now include `saveState`/`loadState` calls.
+
+### Added
+- Comprehensive test suite (90 unit tests + API integration tests) using `node:test` — zero dependencies.
+  - Template rendering tests for all 11 templates.
+  - Property fallback tests for `poll`, `shopping-list`, `comparison`, `workout-timer`, `checkout`, `calendar`, `feedback-form`, `approval-flow`, and `analytics-dashboard`.
+  - State persistence tests verifying `saveState`/`loadState` in all 9 stateful templates.
+  - API integration tests covering `/api/push`, `/api/pages/:id`, `/api/status`, page rendering, and auth enforcement.
+- `npm test` script.
+
 ## [1.4.0] — 2026-03-29
 
 ### Added
