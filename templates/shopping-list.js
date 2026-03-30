@@ -27,7 +27,7 @@ function shoppingList(data = {}) {
   const items = (data.items || []).map((item, i) => ({
     id: i,
     category: item.category || 'Other',
-    name: item.name || 'Item',
+    name: item.name || item.title || item.label || item.item || 'Item',
     quantity: item.quantity || '',
     notes: item.notes || '',
     checked: !!item.checked,

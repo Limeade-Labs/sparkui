@@ -18,12 +18,21 @@ const base = require('./base');
 function macroTracker(data) {
   const { date, calories, protein, fat, carbs, meals = [], _pageId = '', _og = {} } = data;
 
+  // Normalize meal names with fallbacks
+  meals.forEach(m => {
+    m.name = m.name || m.title || m.label || 'Meal';
+  });
+
   const macros = [
     { label: 'Calories', ...calories, unit: 'cal', color: '#00d4aa', icon: '🔥' },
     { label: 'Protein', ...protein, unit: 'g', color: '#6c63ff', icon: '💪' },
     { label: 'Fat', ...fat, unit: 'g', color: '#ff6b6b', icon: '🥑' },
     { label: 'Carbs', ...carbs, unit: 'g', color: '#ffd93d', icon: '⚡' },
   ];
+  // Normalize macro labels with fallbacks
+  macros.forEach(m => {
+    m.label = m.label || m.name || m.title || 'Macro';
+  });
 
   function pct(current, target) {
     if (!target) return 0;

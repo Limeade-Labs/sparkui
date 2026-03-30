@@ -23,7 +23,10 @@ function calendar(data = {}) {
   const title = data.title || 'Calendar';
   const view = data.view || 'day';
   const focusDate = data.date || new Date().toISOString().split('T')[0];
-  const events = data.events || [];
+  const events = (data.events || []).map(ev => ({
+    ...ev,
+    title: ev.title || ev.name || ev.label || ev.subject || 'Event',
+  }));
   const categories = data.categories || {};
 
   const defaultColors = {

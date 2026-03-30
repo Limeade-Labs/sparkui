@@ -21,7 +21,10 @@ function comparison(data = {}) {
   const _og = data._og || {};
   const title = data.title || 'Compare Options';
   const subtitle = data.subtitle || '';
-  const items = (data.items || []).slice(0, 5);
+  const items = (data.items || []).slice(0, 5).map(item => ({
+    ...item,
+    name: item.name || item.title || item.label || 'Item',
+  }));
   const featureLabels = data.featureLabels || [];
 
   // Auto-detect feature labels from items if not provided

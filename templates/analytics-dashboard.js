@@ -16,8 +16,8 @@ const base = require('./base');
  * }
  */
 function analyticsDashboard(data = {}) {
-  const { pageId, token, title, _pageId, _og } = data;
-  const dashTitle = title || (pageId ? `Analytics: ${pageId.slice(0, 8)}…` : 'SparkUI Analytics');
+  const { pageId, token, _pageId, _og } = data;
+  const dashTitle = data.title || data.name || data.label || (pageId ? `Analytics: ${pageId.slice(0, 8)}…` : 'SparkUI Analytics');
 
   const body = `
     <div id="analytics-root">

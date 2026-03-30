@@ -36,6 +36,18 @@ function workoutTimer(data) {
     _og = {},
   } = data;
 
+  // Normalize exercise names with fallbacks
+  exercises.forEach(ex => {
+    ex.name = ex.name || ex.title || ex.label || ex.exercise || 'Exercise';
+  });
+  // Normalize warmup/cooldown text with fallbacks
+  warmup.forEach(w => {
+    w.text = w.text || w.label || w.name || w.title || '';
+  });
+  cooldown.forEach(c => {
+    c.text = c.text || c.label || c.name || c.title || '';
+  });
+
   const totalExercises = exercises.length * rounds + warmup.length + cooldown.length;
   const accentColor = '#00ff88';
   const accentDim = '#00cc6a';

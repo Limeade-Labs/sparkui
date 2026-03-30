@@ -131,7 +131,16 @@ function poll(data = {}) {
       var voted = false;
       var closed = false;
       var votes = {};
+      var totalVoters = 0;
       options.forEach(function(o,i){ votes[i] = 0; });
+
+      // Check if already voted (localStorage)
+      var LS_VOTED_KEY = 'sparkui_poll_voted_' + ${JSON.stringify(pageId)};
+      try {
+        if (localStorage.getItem(LS_VOTED_KEY)) {
+          voted = true;
+        }
+      } catch(e) {}
 
       var optionsEl = document.getElementById('poll-options');
       var voteBtn = document.getElementById('vote-btn');
@@ -197,11 +206,17 @@ function poll(data = {}) {
 
         // Update local counts
         selected.forEach(function(i) { votes[i] = (votes[i] || 0) + 1; });
+        totalVoters++;
         renderResults();
 
-        // Send via WS
+        // Mark as voted in localStorage
+        try { localStorage.setItem(LS_VOTED_KEY, '1'); } catch(e) {}
+
+        // Send completion via WS (agents listen for this)
         if (window.sparkui) {
           sparkui.sendCompletion(payload);
+          // Save aggregated vote state for cross-client sync
+          sparkui.saveState({ votes: votes, totalVoters: totalVoters });
         }
 
         // Visual feedback
@@ -256,8 +271,10 @@ function poll(data = {}) {
       // Listen for WS updates (vote tallies from other voters)
       if (window.sparkui) {
         sparkui.onMessage(function(msg) {
+          // Handle update messages (backward compat)
           if (msg.type === 'update' && msg.data && msg.data.votes) {
             votes = msg.data.votes;
+            if (msg.data.totalVoters !== undefined) totalVoters = msg.data.totalVoters;
             renderResults();
             if (showResults) resultsSection.style.display = 'block';
             if (msg.data.closed) {
@@ -268,6 +285,37 @@ function poll(data = {}) {
               }
             }
           }
+          // Handle state responses (from loadState) and state_sync (from other clients saving)
+          if ((msg.type === 'state' || msg.type === 'state_sync') && msg.data) {
+            var stateData = msg.data;
+            if (stateData.votes) {
+              votes = stateData.votes;
+              if (stateData.totalVoters !== undefined) totalVoters = stateData.totalVoters;
+              renderResults();
+              if (showResults) resultsSection.style.display = 'block';
+            }
+          }
+        });
+
+        // Load existing vote state from server
+        sparkui.loadState().then(function(state) {
+          if (state && state.votes) {
+            votes = state.votes;
+            if (state.totalVoters !== undefined) totalVoters = state.totalVoters;
+            renderResults();
+            if (showResults) resultsSection.style.display = 'block';
+          }
+        });
+      }
+
+      // If already voted, show results and hide vote UI
+      if (voted) {
+        voteBtn.style.display = 'none';
+        voteConfirmed.style.display = 'block';
+        if (showResults) resultsSection.style.display = 'block';
+        document.querySelectorAll('.poll-option').forEach(function(el) {
+          el.style.cursor = 'default';
+          el.style.pointerEvents = 'none';
         });
       }
 

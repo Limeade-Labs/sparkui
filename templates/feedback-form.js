@@ -9,7 +9,7 @@ const base = require('./base');
  */
 function feedbackForm(data = {}) {
   const pageId = data._pageId || 'unknown';
-  const title = data.title || 'Feedback';
+  const title = data.title || data.name || data.label || 'Feedback';
   const subtitle = data.subtitle || 'We\'d love to hear from you.';
   const questions = data.questions || null; // optional array of extra text fields
   const _og = data._og || {};

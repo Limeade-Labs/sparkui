@@ -19,7 +19,7 @@ function checkout(data = {}) {
   const _og = data._og || {};
 
   const product = data.product || {};
-  const productName = product.name || 'Product';
+  const productName = product.name || product.title || product.label || 'Product';
   const productDesc = product.description || '';
   const productPrice = typeof product.price === 'number' ? product.price : 29.99;
   const productImage = product.imageUrl || product.image || '📦';

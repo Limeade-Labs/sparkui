@@ -24,12 +24,15 @@ const base = require('./base');
 function approvalFlow(data = {}) {
   const pageId = data._pageId || 'unknown';
   const _og = data._og || {};
-  const title = data.title || 'Approval Request';
+  const title = data.title || data.name || data.label || 'Approval Request';
   const description = data.description || '';
   const requester = data.requester || '';
   const amount = data.amount || '';
   const status = data.status || 'pending';
-  const details = data.details || [];
+  const details = (data.details || []).map(d => ({
+    ...d,
+    label: d.label || d.name || d.title || '',
+  }));
   const requireComment = !!data.requireComment;
   const showRequestChanges = data.showRequestChanges !== false;
   const urgency = data.urgency || '';
