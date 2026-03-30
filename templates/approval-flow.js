@@ -29,9 +29,11 @@ function approvalFlow(data = {}) {
   const requester = data.requester || '';
   const amount = data.amount || '';
   const status = data.status || 'pending';
-  const details = (data.details || []).map(d => ({
+  const rawDetails = data.details || data.items || [];
+  const details = rawDetails.map(d => ({
     ...d,
     label: d.label || d.name || d.title || '',
+    value: d.value || d.description || '',
   }));
   const requireComment = !!data.requireComment;
   const showRequestChanges = data.showRequestChanges !== false;
