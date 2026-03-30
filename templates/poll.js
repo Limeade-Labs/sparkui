@@ -26,7 +26,7 @@ function poll(data = {}) {
   const question = data.question || 'What do you think?';
   const subtitle = data.subtitle || '';
   const options = (data.options || ['Yes', 'No']).map(o =>
-    typeof o === 'string' ? { text: o, icon: '' } : { text: o.text || o.label || o.name || '', icon: o.icon || '', description: o.description || '' }
+    typeof o === 'string' ? { text: o, icon: '' } : { text: o.text || o.label || o.name || o.title || '', icon: o.icon || '', description: o.description || '' }
   );
   const multiSelect = !!data.multiSelect;
   const anonymous = data.anonymous !== false;
