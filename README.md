@@ -362,10 +362,11 @@ If you're running [OpenClaw](https://github.com/openclaw/openclaw), SparkUI runs
 
 ```bash
 openclaw plugins install @limeade-labs/sparkui
+openclaw config set tools.allow '["sparkui_push", "sparkui_compose"]'
 openclaw gateway restart
 ```
 
-Auto-configures URL, token, and agent skill. Done.
+Auto-configures URL, token, and agent skill. The `tools.allow` step is required because OpenClaw's default tools profile doesn't include plugin tools — see [OpenClaw Setup](./docs/openclaw-setup.md) for details.
 
 ## Contributing
 

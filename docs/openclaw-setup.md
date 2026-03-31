@@ -9,7 +9,20 @@ openclaw plugins install @limeade-labs/sparkui
 openclaw gateway restart
 ```
 
-That's it. The plugin auto-starts the SparkUI server, generates a push token, and registers the agent skill. Your agent can immediately start generating pages.
+That's it. The plugin auto-starts the SparkUI server, generates a push token, and registers the agent skill.
+
+### Required: Allow Plugin Tools
+
+OpenClaw's default `coding` tools profile only includes built-in tools — plugin tools are excluded by default. You need to explicitly allow SparkUI's tools:
+
+```bash
+openclaw config set tools.allow '["sparkui_push", "sparkui_compose"]'
+openclaw gateway restart
+```
+
+Without this step, agents will fall back to using `curl` instead of the native tools. You can verify the tools are available by checking the agent's `<available_skills>` or tool list in its system prompt.
+
+Your agent can now start generating pages using the `sparkui_push` and `sparkui_compose` tools directly.
 
 To see the auto-generated push token and server status:
 

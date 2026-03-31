@@ -405,6 +405,32 @@ Returns `{ id, url, fullUrl }` — ready to share.
 5. Agent shares the link: "Here's your updated dashboard: http://..."
 6. If the page already exists from earlier, use PATCH to update it instead of creating a new one
 
+## Troubleshooting
+
+### Tools not available (sparkui_push / sparkui_compose missing)
+
+If the agent falls back to `curl` instead of using the native tools, the plugin tools aren't in the allowed list. OpenClaw's default `coding` tools profile only includes built-in tools — plugin tools must be explicitly allowed:
+
+```bash
+openclaw config set tools.allow '["sparkui_push", "sparkui_compose"]'
+openclaw gateway restart
+```
+
+Verify by checking the agent's system prompt for `sparkui_push` and `sparkui_compose` in the available tools list.
+
+### Server not responding
+
+```bash
+curl http://localhost:3457/up
+# Should return 200 OK
+```
+
+If down, restart via: `openclaw gateway restart` (plugin auto-starts with gateway).
+
+### Pages not persisting state
+
+Redis is required for state persistence across server restarts. Without Redis, state lives only in memory. Check: `redis-cli ping` should return `PONG`.
+
 ## Notes
 - Pages expire after their TTL (default 1 hour). This is by design — they're ephemeral.
 - The macro-tracker template auto-refreshes every 30 seconds.
