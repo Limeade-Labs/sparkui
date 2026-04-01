@@ -289,7 +289,9 @@ export default definePluginEntry({
         required: ["template", "data"],
       },
       async execute(_id, params, context) {
-        if (!serverReady || !pushToken) {
+        // Check server health via HTTP (serverReady flag may not be shared across plugin contexts)
+        const effectiveToken = pushToken || process.env.PUSH_TOKEN;
+        if (!effectiveToken) {
           return {
             content: [
               {
@@ -321,7 +323,7 @@ export default definePluginEntry({
           const resp = await fetch(`http://localhost:${port}/api/push`, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${pushToken}`,
+              Authorization: `Bearer ${effectiveToken}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
@@ -409,7 +411,9 @@ export default definePluginEntry({
         required: ["title", "sections"],
       },
       async execute(_id, params, context) {
-        if (!serverReady || !pushToken) {
+        // Check server health via HTTP (serverReady flag may not be shared across plugin contexts)
+        const effectiveToken = pushToken || process.env.PUSH_TOKEN;
+        if (!effectiveToken) {
           return {
             content: [
               {
@@ -441,7 +445,7 @@ export default definePluginEntry({
           const resp = await fetch(`http://localhost:${port}/api/compose`, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${pushToken}`,
+              Authorization: `Bearer ${effectiveToken}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
