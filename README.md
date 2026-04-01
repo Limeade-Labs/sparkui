@@ -362,7 +362,7 @@ If you're running [OpenClaw](https://github.com/openclaw/openclaw), SparkUI runs
 
 ```bash
 openclaw plugins install @limeade-labs/sparkui
-openclaw config set tools.allow '["sparkui_push", "sparkui_compose"]'
+openclaw config set tools.alsoAllow '["sparkui_push", "sparkui_compose"]'
 openclaw gateway restart
 ```
 

@@ -16,11 +16,18 @@ That's it. The plugin auto-starts the SparkUI server, generates a push token, an
 OpenClaw's default `coding` tools profile only includes built-in tools — plugin tools are excluded by default. You need to explicitly allow SparkUI's tools:
 
 ```bash
-openclaw config set tools.allow '["sparkui_push", "sparkui_compose"]'
+openclaw config set tools.alsoAllow '["sparkui_push", "sparkui_compose"]'
 openclaw gateway restart
 ```
 
-Without this step, agents will fall back to using `curl` instead of the native tools. You can verify the tools are available by checking the agent's `<available_skills>` or tool list in its system prompt.
+> **Note:** `tools.alsoAllow` is additive — it won't clobber any existing tool configuration. If you use `tools.allow` instead, it replaces the entire allow list.
+
+Without this step, agents will fall back to using `curl` instead of the native tools. Verify the config was applied:
+
+```bash
+openclaw config get tools.alsoAllow
+# Should include "sparkui_push" and "sparkui_compose"
+```
 
 Your agent can now start generating pages using the `sparkui_push` and `sparkui_compose` tools directly.
 

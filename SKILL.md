@@ -412,11 +412,18 @@ Returns `{ id, url, fullUrl }` — ready to share.
 If the agent falls back to `curl` instead of using the native tools, the plugin tools aren't in the allowed list. OpenClaw's default `coding` tools profile only includes built-in tools — plugin tools must be explicitly allowed:
 
 ```bash
-openclaw config set tools.allow '["sparkui_push", "sparkui_compose"]'
+openclaw config set tools.alsoAllow '["sparkui_push", "sparkui_compose"]'
 openclaw gateway restart
 ```
 
-Verify by checking the agent's system prompt for `sparkui_push` and `sparkui_compose` in the available tools list.
+> Use `tools.alsoAllow` (additive) instead of `tools.allow` (replaces entire list).
+
+Verify the config was applied:
+
+```bash
+openclaw config get tools.alsoAllow
+# Should include "sparkui_push" and "sparkui_compose"
+```
 
 ### Server not responding
 
