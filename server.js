@@ -739,8 +739,149 @@ function prettifyTemplateName(name) {
   return name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// ── Demo Proxy ──────────────────────────────────────────────────────────────
+
+// Pre-configured demo payloads for each template (no auth required)
+const DEMO_PAYLOADS = {
+  'macro-tracker': { date: '2026-03-15', calories: { current: 1070, target: 2000 }, protein: { current: 70, target: 150 }, fat: { current: 42, target: 70 }, carbs: { current: 83, target: 200 }, meals: [{ name: 'Breakfast', time: '7:00 AM', calories: 420 }, { name: 'Lunch', time: '12:00 PM', calories: 650 }] },
+  'checkout': { product: { name: 'SparkUI Pro', description: 'Unlimited ephemeral UIs for your AI agents', price: 29.99, image: '⚡' } },
+  'workout-timer': { exercises: [{ name: 'Push-ups', duration: 30, rest: 15 }, { name: 'Squats', duration: 30, rest: 15 }, { name: 'Plank', duration: 45, rest: 20 }], rounds: 3 },
+  'feedback-form': { fields: [{ type: 'rating', label: 'Overall Experience', max: 5 }, { type: 'rating', label: 'Ease of Use', max: 5 }, { type: 'text', label: 'What did you like?', placeholder: 'Tell us...' }, { type: 'select', label: 'Would you recommend?', options: ['Definitely', 'Probably', 'Not sure', 'No'] }] },
+  'poll': { question: 'What framework do you prefer?', options: ['React', 'Vue', 'Svelte', 'Angular', 'Solid'], multiSelect: false, showResults: true },
+  'shopping-list': { title: 'Weekly Groceries', items: [{ category: 'Produce', name: 'Avocados', quantity: '3' }, { category: 'Produce', name: 'Spinach', quantity: '1 bag' }, { category: 'Dairy', name: 'Greek Yogurt', quantity: '2' }, { category: 'Meat', name: 'Chicken Breast', quantity: '1 lb' }, { category: 'Bakery', name: 'Sourdough Bread', quantity: '1 loaf' }, { category: 'Pantry', name: 'Olive Oil', quantity: '1 bottle' }] },
+  'comparison': { title: 'Choose a Plan', items: [{ name: 'Starter', price: '$9/mo', rating: 4, features: { 'API Calls': '1,000/mo', 'Storage': '5 GB', 'Support': 'Email' }, pros: ['Affordable', 'Easy setup'], cons: ['Limited API calls'] }, { name: 'Pro', price: '$29/mo', rating: 4.5, recommended: true, features: { 'API Calls': '50,000/mo', 'Storage': '100 GB', 'Support': 'Priority' }, pros: ['Great value', 'Priority support'], cons: ['No custom domain'] }, { name: 'Enterprise', price: '$99/mo', rating: 5, features: { 'API Calls': 'Unlimited', 'Storage': '1 TB', 'Support': 'Dedicated' }, pros: ['Unlimited everything', 'SLA'], cons: ['Higher cost'] }], featureLabels: ['API Calls', 'Storage', 'Support'] },
+  'approval-flow': { title: 'Q2 Marketing Budget Increase', description: 'Requesting additional budget for the Q2 social media campaign based on strong Q1 performance.', requester: 'Sarah Chen', amount: '$15,000', urgency: 'medium', details: [{ label: 'Department', value: 'Marketing' }, { label: 'Timeline', value: 'Apr 1 - Jun 30' }, { label: 'ROI Estimate', value: '3.2x' }] },
+  'calendar': { title: 'My Schedule', view: 'day', events: [{ title: 'Team Standup', start: '2026-03-31T09:00:00Z', end: '2026-03-31T09:30:00Z', category: 'Meeting', location: 'Zoom' }, { title: 'Lunch', start: '2026-03-31T12:00:00Z', end: '2026-03-31T13:00:00Z', category: 'Personal' }, { title: 'Code Review', start: '2026-03-31T14:00:00Z', end: '2026-03-31T15:00:00Z', category: 'Work' }] },
+  'analytics-dashboard': { title: 'Q1 Performance', metrics: [{ label: 'Revenue', value: '$124,500', change: 12.3 }, { label: 'Users', value: '8,432', change: 5.7 }, { label: 'Conversion', value: '3.2%', change: -0.4 }] },
+  'countdown': { title: 'Product Launch', target: '2026-06-01T00:00:00Z', message: 'Something amazing is coming...' },
+};
+
+// In-memory rate limiter for demo endpoint: max 10 per hour per IP
+const demoRateMap = new Map(); // ip -> { count, resetAt }
+const DEMO_RATE_LIMIT = 10;
+const DEMO_RATE_WINDOW = 60 * 60 * 1000; // 1 hour
+
+// Cleanup stale demo rate entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of demoRateMap) {
+    if (now > entry.resetAt) demoRateMap.delete(ip);
+  }
+}, 10 * 60 * 1000).unref();
+
+app.post('/api/demo/:template', async (req, res) => {
+  try {
+    const { template } = req.params;
+
+    if (!DEMO_PAYLOADS[template]) {
+      return res.status(400).json({ error: `Unknown demo template "${template}". Available: ${Object.keys(DEMO_PAYLOADS).join(', ')}` });
+    }
+
+    // Rate limit by IP
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    let entry = demoRateMap.get(ip);
+    if (!entry || now > entry.resetAt) {
+      entry = { count: 0, resetAt: now + DEMO_RATE_WINDOW };
+      demoRateMap.set(ip, entry);
+    }
+    entry.count++;
+    if (entry.count > DEMO_RATE_LIMIT) {
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      res.set('Retry-After', String(retryAfter));
+      return res.status(429).json({ error: 'Demo rate limit exceeded. Try again later.', retryAfter });
+    }
+
+    const data = DEMO_PAYLOADS[template];
+    const id = uuidv4();
+    const baseUrl = process.env.SPARKUI_BASE_URL || `http://localhost:${PORT}`;
+
+    const ogDefaults = {
+      title: prettifyTemplateName(template),
+      description: 'An ephemeral micro-app powered by SparkUI ⚡',
+      image: `${baseUrl}/og/${id}.svg`,
+      url: `${baseUrl}/s/${id}`,
+    };
+
+    // Only render templates that exist in the registry
+    if (!templates.has(template)) {
+      return res.status(400).json({ error: `Template "${template}" not registered` });
+    }
+
+    const templateData = { ...data, _pageId: id, _og: ogDefaults };
+    const finalHtml = templates.render(template, templateData);
+
+    const enrichedMeta = {
+      template,
+      title: data.title || null,
+      og: ogDefaults,
+      demo: true,
+    };
+
+    let finalOpenclaw = null;
+    if (INTERACTIVE_TEMPLATES.has(template)) {
+      finalOpenclaw = { enabled: true, eventTypes: ['completion'] };
+    }
+
+    const pageOpts = {
+      html: finalHtml,
+      ttl: 3600,
+      callbackUrl: null,
+      callbackToken: null,
+      meta: { ...enrichedMeta, data },
+      openclaw: finalOpenclaw,
+    };
+
+    store.set(id, pageOpts);
+    await syncPageToRedis(id, store.get(id), 3600);
+
+    analytics.init(id, {
+      template,
+      created: new Date().toISOString(),
+      expires: new Date(Date.now() + 3600 * 1000).toISOString(),
+      demo: true,
+    });
+
+    res.status(201).json({ id, url: `/s/${id}`, fullUrl: `${baseUrl}/s/${id}` });
+  } catch (err) {
+    console.error('Demo error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Push Rate Limiting ──────────────────────────────────────────────────────
+
+// In-memory rate limiter for /api/push: max 60 per minute per token
+const pushRateMap = new Map(); // token -> { count, resetAt }
+const PUSH_RATE_LIMIT = 60;
+const PUSH_RATE_WINDOW = 60 * 1000; // 1 minute
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, entry] of pushRateMap) {
+    if (now > entry.resetAt) pushRateMap.delete(token);
+  }
+}, 60 * 1000).unref();
+
+function pushRateLimit(req, res, next) {
+  const token = (req.headers.authorization || '').slice(7);
+  const now = Date.now();
+  let entry = pushRateMap.get(token);
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + PUSH_RATE_WINDOW };
+    pushRateMap.set(token, entry);
+  }
+  entry.count++;
+  if (entry.count > PUSH_RATE_LIMIT) {
+    const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({ error: 'Rate limit exceeded. Max 60 requests per minute.', retryAfter });
+  }
+  next();
+}
+
 // Push API — create a page
-app.post('/api/push', requireAuth, async (req, res) => {
+app.post('/api/push', requireAuth, pushRateLimit, async (req, res) => {
   try {
     const { html, template, data, ttl, callbackUrl, callbackToken, meta, openclaw, og } = req.body;
 
