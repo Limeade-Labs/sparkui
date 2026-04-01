@@ -116,6 +116,17 @@ export default definePluginEntry({
           api.log?.info?.(`SparkUI: using localhost URLs. For shareable links, set publicUrl in plugin config.`);
         }
 
+        // Auto-configure OpenClaw hooks for completion event routing
+        const hooksToken = api.config?.hooks?.token;
+        const gatewayPort = api.config?.gateway?.bind?.port ?? 18789;
+        if (hooksToken) {
+          process.env.OPENCLAW_HOOKS_URL = process.env.OPENCLAW_HOOKS_URL || `http://127.0.0.1:${gatewayPort}/hooks/agent`;
+          process.env.OPENCLAW_HOOKS_TOKEN = process.env.OPENCLAW_HOOKS_TOKEN || hooksToken;
+          api.log?.info?.('SparkUI: auto-configured OpenClaw hooks for completion event routing');
+        } else {
+          api.log?.info?.('SparkUI: hooks.token not found in config — completion events won\'t route to chat. Enable hooks in OpenClaw config.');
+        }
+
         // Set env vars so server.js picks them up
         process.env.SPARKUI_PORT = String(port);
         process.env.PUSH_TOKEN = pushToken;
@@ -289,13 +300,31 @@ export default definePluginEntry({
           };
         }
         try {
+          const body = { ...params };
+          // Auto-inject openclaw config for event routing
+          // Skip if user explicitly set openclaw (including false/null to disable)
+          if (body.openclaw === undefined) {
+            const session = context?.session ?? api.session ?? null;
+            const destination = session?.channelId ?? session?.to ?? null;
+            if (destination) {
+              body.openclaw = {
+                enabled: true,
+                eventTypes: ['completion'],
+                channel: session?.channel ?? null,
+                to: destination,
+              };
+            } else {
+              api.log?.warn?.("SparkUI: no session channel context — completion events won't route for this page");
+            }
+          }
+
           const resp = await fetch(`http://localhost:${port}/api/push`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${pushToken}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(params),
+            body: JSON.stringify(body),
           });
           const result = await resp.json();
           if (!resp.ok) {
@@ -391,13 +420,31 @@ export default definePluginEntry({
           };
         }
         try {
+          const body = { ...params };
+          // Auto-inject openclaw config for event routing
+          // Skip if user explicitly set openclaw (including false/null to disable)
+          if (body.openclaw === undefined) {
+            const session = context?.session ?? api.session ?? null;
+            const destination = session?.channelId ?? session?.to ?? null;
+            if (destination) {
+              body.openclaw = {
+                enabled: true,
+                eventTypes: ['completion'],
+                channel: session?.channel ?? null,
+                to: destination,
+              };
+            } else {
+              api.log?.warn?.("SparkUI: no session channel context — completion events won't route for this page");
+            }
+          }
+
           const resp = await fetch(`http://localhost:${port}/api/compose`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${pushToken}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(params),
+            body: JSON.stringify(body),
           });
           const result = await resp.json();
           if (!resp.ok) {

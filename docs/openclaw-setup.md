@@ -69,9 +69,19 @@ The agent decides when to use SparkUI based on the "When to Use" section in SKIL
 
 SparkUI can forward user interactions back to the agent via OpenClaw's webhook system. This closes the loop: **agent pushes page → user interacts → agent gets notified**.
 
+### Plugin Mode (Automatic)
+
+When installed as a plugin, hooks are auto-configured — no manual `.env` setup needed. The plugin reads `hooks.token` and the gateway port from OpenClaw config and sets `OPENCLAW_HOOKS_URL` and `OPENCLAW_HOOKS_TOKEN` automatically. The `openclaw` metadata (channel, destination) is also injected into every page push automatically from the originating session context.
+
+Just ensure hooks are enabled in your OpenClaw config (`hooks.token` must be set).
+
+### Manual / Standalone Mode
+
+If running SparkUI standalone (not as a plugin), you must set `OPENCLAW_HOOKS_URL` and `OPENCLAW_HOOKS_TOKEN` in your `.env` (see [Manual Setup](#manual-setup-alternative) below) and include `openclaw` config when pushing a page.
+
 ### Enable OpenClaw Forwarding
 
-Add `openclaw` config when pushing a page:
+Add `openclaw` config when pushing a page (only needed in standalone mode — the plugin injects this automatically):
 
 ```json
 {
