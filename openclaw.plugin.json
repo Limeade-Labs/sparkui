@@ -2,7 +2,7 @@
   "id": "sparkui",
   "name": "SparkUI",
   "description": "Ephemeral, purpose-built web UIs generated on demand from chat conversations",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "skills": [
     "skills/sparkui"
   ],

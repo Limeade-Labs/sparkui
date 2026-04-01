@@ -2,6 +2,23 @@
 
 All notable changes to SparkUI are documented here.
 
+## [1.5.0] — 2026-03-31
+
+### Security
+- Removed hardcoded push token from landing page source code (was publicly exposed).
+- Added `POST /api/demo/:template` endpoint — pre-baked demo payloads, no auth required, rate limited 10/hr per IP.
+- Added in-memory rate limiter to `/api/push` — 60 req/min per token, 429 + Retry-After header.
+
+### Added
+- Plugin auto-configures `OPENCLAW_HOOKS_URL` and `OPENCLAW_HOOKS_TOKEN` from OpenClaw config at startup — no manual `.env` setup needed for completion event routing.
+- `sparkui_push` and `sparkui_compose` tools auto-inject `openclaw` metadata (channel, destination) from session context for zero-config event routing.
+- Troubleshooting section in SKILL.md for missing tools, server down, and state persistence issues.
+
+### Documentation
+- Documented `tools.alsoAllow` requirement for OpenClaw plugin in README, SKILL.md, and docs/openclaw-setup.md.
+- Added verification commands for plugin tool configuration.
+- Clarified plugin mode (automatic) vs. standalone mode (manual) for completion event routing in docs/openclaw-setup.md.
+
 ## [1.4.3] — 2026-03-30
 
 ### Fixed
