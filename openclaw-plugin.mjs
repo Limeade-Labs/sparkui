@@ -302,14 +302,20 @@ export default definePluginEntry({
         try {
           const body = { ...params };
           // Auto-inject openclaw config for event routing
-          if (!body.openclaw) {
+          // Skip if user explicitly set openclaw (including false/null to disable)
+          if (body.openclaw === undefined) {
             const session = context?.session ?? api.session ?? null;
-            body.openclaw = {
-              enabled: true,
-              eventTypes: ['completion'],
-              channel: session?.channel ?? 'slack',
-              to: session?.channelId ?? session?.to ?? undefined,
-            };
+            const destination = session?.channelId ?? session?.to ?? null;
+            if (destination) {
+              body.openclaw = {
+                enabled: true,
+                eventTypes: ['completion'],
+                channel: session?.channel ?? null,
+                to: destination,
+              };
+            } else {
+              api.log?.warn?.("SparkUI: no session channel context — completion events won't route for this page");
+            }
           }
 
           const resp = await fetch(`http://localhost:${port}/api/push`, {
@@ -416,14 +422,20 @@ export default definePluginEntry({
         try {
           const body = { ...params };
           // Auto-inject openclaw config for event routing
-          if (!body.openclaw) {
+          // Skip if user explicitly set openclaw (including false/null to disable)
+          if (body.openclaw === undefined) {
             const session = context?.session ?? api.session ?? null;
-            body.openclaw = {
-              enabled: true,
-              eventTypes: ['completion'],
-              channel: session?.channel ?? 'slack',
-              to: session?.channelId ?? session?.to ?? undefined,
-            };
+            const destination = session?.channelId ?? session?.to ?? null;
+            if (destination) {
+              body.openclaw = {
+                enabled: true,
+                eventTypes: ['completion'],
+                channel: session?.channel ?? null,
+                to: destination,
+              };
+            } else {
+              api.log?.warn?.("SparkUI: no session channel context — completion events won't route for this page");
+            }
           }
 
           const resp = await fetch(`http://localhost:${port}/api/compose`, {
