@@ -151,18 +151,37 @@ app.use((req, res, next) => {
 
 // ── Auth Middleware ───────────────────────────────────────────────────────────
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing or invalid Authorization header' });
   }
   const token = auth.slice(7);
+
+  // Check master token first (constant-time comparison)
   const tokenBuf = Buffer.from(token);
   const expectedBuf = Buffer.from(PUSH_TOKEN);
-  if (tokenBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(tokenBuf, expectedBuf)) {
-    return res.status(401).json({ error: 'Invalid push token' });
+  if (tokenBuf.length === expectedBuf.length && crypto.timingSafeEqual(tokenBuf, expectedBuf)) {
+    req.tokenTier = 'master';
+    req.tokenKey = token;
+    return next();
   }
-  next();
+
+  // Check Redis for free-tier token
+  if (!redisStore._isNoop) {
+    try {
+      const tier = await redisStore.client.hget(`sparkui:token:${token}`, 'tier');
+      if (tier === 'free') {
+        req.tokenTier = 'free';
+        req.tokenKey = token;
+        return next();
+      }
+    } catch (err) {
+      console.error('[auth] Redis token lookup failed:', err.message);
+    }
+  }
+
+  return res.status(401).json({ error: 'Invalid push token' });
 }
 
 // ── Page State Helpers (Redis-backed) ────────────────────────────────────────
@@ -880,8 +899,129 @@ function pushRateLimit(req, res, next) {
   next();
 }
 
+// ── Free-Tier Daily Rate Limit ──────────────────────────────────────────────
+
+const FREE_DAILY_LIMIT = 20;
+
+async function freeRateLimit(req, res, next) {
+  if (req.tokenTier !== 'free') return next();
+
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
+  const usageKey = `sparkui:usage:${req.tokenKey}:${today}`;
+
+  try {
+    const count = await redisStore.client.incr(usageKey);
+    if (count === 1) {
+      // Set TTL of 25 hours on first increment
+      await redisStore.client.expire(usageKey, 90000);
+    }
+    if (count > FREE_DAILY_LIMIT) {
+      const tomorrow = new Date(Date.now());
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      tomorrow.setUTCHours(0, 0, 0, 0);
+      return res.status(429).json({
+        error: `Free tier limit reached: ${FREE_DAILY_LIMIT} pages/day. Resets at midnight UTC.`,
+        tier: 'free',
+        limit: FREE_DAILY_LIMIT,
+        resets_at: tomorrow.toISOString(),
+      });
+    }
+  } catch (err) {
+    console.error('[rate-limit] Redis usage check failed:', err.message);
+    // Allow request on Redis error (fail open)
+  }
+  next();
+}
+
+// ── Token Registration ──────────────────────────────────────────────────────
+
+// In-memory IP rate limiter for token registration: max 5 per hour per IP
+const tokenRegRateMap = new Map(); // ip -> { count, resetAt }
+const TOKEN_REG_RATE_LIMIT = 5;
+const TOKEN_REG_RATE_WINDOW = 60 * 60 * 1000; // 1 hour
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of tokenRegRateMap) {
+    if (now > entry.resetAt) tokenRegRateMap.delete(ip);
+  }
+}, 10 * 60 * 1000).unref();
+
+app.post('/api/tokens/register', async (req, res) => {
+  // Require Redis for token registration
+  if (redisStore._isNoop) {
+    return res.status(503).json({ error: 'Token registration unavailable' });
+  }
+
+  // IP rate limit
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  let entry = tokenRegRateMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + TOKEN_REG_RATE_WINDOW };
+    tokenRegRateMap.set(ip, entry);
+  }
+  entry.count++;
+  if (entry.count > TOKEN_REG_RATE_LIMIT) {
+    const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({ error: 'Too many token registrations. Try again later.', retryAfter });
+  }
+
+  const email = (req.body && req.body.email) || '';
+  const token = 'spkf_' + crypto.randomBytes(24).toString('hex');
+  const createdAt = Math.floor(Date.now() / 1000);
+
+  try {
+    const redisKey = `sparkui:token:${token}`;
+    await redisStore.client.hset(redisKey, { tier: 'free', email, created_at: String(createdAt) });
+    await redisStore.client.expire(redisKey, 31536000); // 1 year
+    res.status(201).json({
+      token,
+      tier: 'free',
+      limits: { daily: FREE_DAILY_LIMIT },
+      message: `Free token created. You can push up to ${FREE_DAILY_LIMIT} pages per day. Pages expire after 1 hour.`,
+    });
+  } catch (err) {
+    console.error('[tokens] Registration failed:', err.message);
+    res.status(500).json({ error: 'Failed to create token' });
+  }
+});
+
+// ── Token Info ──────────────────────────────────────────────────────────────
+
+app.get('/api/tokens/me', requireAuth, async (req, res) => {
+  if (req.tokenTier === 'master') {
+    return res.json({ tier: 'master', limits: null });
+  }
+
+  // Free tier — read metadata and usage
+  try {
+    const meta = await redisStore.client.hgetall(`sparkui:token:${req.tokenKey}`);
+    const today = new Date().toISOString().slice(0, 10);
+    const usageKey = `sparkui:usage:${req.tokenKey}:${today}`;
+    const usageToday = parseInt(await redisStore.client.get(usageKey) || '0', 10);
+
+    const tomorrow = new Date(Date.now());
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    tomorrow.setUTCHours(0, 0, 0, 0);
+
+    res.json({
+      tier: 'free',
+      email: meta.email || '',
+      created_at: parseInt(meta.created_at, 10) || 0,
+      usage_today: usageToday,
+      limit_daily: FREE_DAILY_LIMIT,
+      resets_at: tomorrow.toISOString(),
+    });
+  } catch (err) {
+    console.error('[tokens] Info lookup failed:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve token info' });
+  }
+});
+
 // Push API — create a page
-app.post('/api/push', requireAuth, pushRateLimit, async (req, res) => {
+app.post('/api/push', requireAuth, pushRateLimit, freeRateLimit, async (req, res) => {
   try {
     const { html, template, data, ttl, callbackUrl, callbackToken, meta, openclaw, og } = req.body;
 
@@ -1193,9 +1333,83 @@ function escapeXml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
+// ── Get Token Page ──────────────────────────────────────────────────────────
+
+app.get('/get-token', (req, res) => {
+  res.set('Content-Type', 'text/html').send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get Free Token — SparkUI</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f0f13;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{max-width:520px;width:100%;background:#18181f;border:1px solid #2a2a35;border-radius:16px;padding:40px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+h1{font-size:1.6rem;margin-bottom:8px;color:#fff}
+.sub{color:#888;font-size:.9rem;margin-bottom:28px}
+label{display:block;font-size:.85rem;color:#aaa;margin-bottom:6px}
+input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:.95rem;outline:none}
+input:focus{border-color:#7c3aed}
+.btn{display:block;width:100%;margin-top:18px;padding:12px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-size:1rem;font-weight:600;cursor:pointer;transition:background .2s}
+.btn:hover{background:#6d28d9}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.result{display:none;margin-top:24px}
+.token-box{background:#111;border:1px solid #333;border-radius:8px;padding:12px 14px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:.82rem;word-break:break-all;position:relative;line-height:1.5}
+.copy-btn{position:absolute;top:8px;right:8px;background:#7c3aed;color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:.75rem;cursor:pointer}
+.copy-btn:hover{background:#6d28d9}
+.snippet{margin-top:18px}
+.snippet-title{font-size:.8rem;color:#888;margin-bottom:6px}
+.snippet-box{background:#111;border:1px solid #2a2a35;border-radius:8px;padding:12px 14px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:.78rem;line-height:1.6;white-space:pre-wrap;word-break:break-all;color:#c4b5fd}
+.info{margin-top:16px;font-size:.82rem;color:#888}
+.info span{color:#7c3aed}
+.error{display:none;margin-top:14px;color:#f87171;font-size:.85rem}
+.back{display:block;margin-top:20px;text-align:center;color:#7c3aed;text-decoration:none;font-size:.85rem}
+.back:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>&#9889; Get a Free SparkUI Token</h1>
+<p class="sub">Use SparkUI from ChatGPT, Claude, or any AI assistant — no plugin needed.</p>
+<form id="form">
+<label for="email">Email (optional)</label>
+<input type="email" id="email" placeholder="your@email.com (optional)">
+<button type="submit" class="btn" id="submit-btn">Get My Free Token</button>
+</form>
+<div class="error" id="error"></div>
+<div class="result" id="result">
+<label>Your token</label>
+<div class="token-box"><code id="token-val"></code><button class="copy-btn" id="copy-btn">Copy</button></div>
+<div class="snippet">
+<div class="snippet-title">Paste this into your AI assistant's system prompt or custom instructions:</div>
+<div class="snippet-box" id="snippet-box"></div>
+</div>
+<div class="info"><span>20 pages/day</span> &middot; pages expire after 1 hour</div>
+</div>
+<a class="back" href="/">&#8592; Back to sparkui.dev</a>
+</div>
+<script>
+const form=document.getElementById('form'),emailEl=document.getElementById('email'),btn=document.getElementById('submit-btn'),errorEl=document.getElementById('error'),resultEl=document.getElementById('result'),tokenVal=document.getElementById('token-val'),snippetBox=document.getElementById('snippet-box'),copyBtn=document.getElementById('copy-btn');
+form.addEventListener('submit',async e=>{
+e.preventDefault();btn.disabled=true;btn.textContent='Creating...';errorEl.style.display='none';resultEl.style.display='none';
+try{const r=await fetch('/api/tokens/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:emailEl.value||''})});
+const d=await r.json();
+if(!r.ok)throw new Error(d.error||'Request failed');
+tokenVal.textContent=d.token;
+snippetBox.textContent='You have access to SparkUI for creating visual UIs. When helpful, use POST '+location.origin+'/api/push with header Authorization: Bearer '+d.token+' to create pages. See '+location.origin+' for API docs.';
+resultEl.style.display='block';form.style.display='none';
+}catch(err){errorEl.textContent=err.message;errorEl.style.display='block';btn.disabled=false;btn.textContent='Get My Free Token';}
+});
+copyBtn.addEventListener('click',()=>{navigator.clipboard.writeText(tokenVal.textContent).then(()=>{copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy',2000)});});
+</script>
+</body>
+</html>`);
+});
+
 // ── Compose API ──────────────────────────────────────────────────────────────
 
-app.post('/api/compose', requireAuth, async (req, res) => {
+app.post('/api/compose', requireAuth, freeRateLimit, async (req, res) => {
   try {
     const layout = req.body;
 
