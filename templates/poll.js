@@ -141,6 +141,7 @@ function poll(data = {}) {
       var closed = false;
       var votes = {};
       var totalVoters = 0;
+      var stateLoaded = false;
       options.forEach(function(o,i){ votes[i] = 0; });
 
       // Check if already voted (localStorage)
@@ -162,6 +163,20 @@ function poll(data = {}) {
       var totalVotesEl = document.getElementById('total-votes');
       var pollClosed = document.getElementById('poll-closed');
       var voteConfirmed = document.getElementById('vote-confirmed');
+
+      // Loading state: disable vote button until state loads or 2s timeout
+      voteBtn.textContent = 'Loading...';
+      function enableVoteBtn() {
+        if (stateLoaded && !voted) {
+          voteBtn.textContent = 'Cast Vote';
+        }
+      }
+      setTimeout(function() {
+        if (!stateLoaded) {
+          stateLoaded = true;
+          enableVoteBtn();
+        }
+      }, 2000);
 
       // Render options
       options.forEach(function(opt, i) {
@@ -217,7 +232,7 @@ function poll(data = {}) {
           votedAt: new Date().toISOString()
         };
 
-        // Update local counts
+        // Optimistic local update (server will broadcast authoritative totals)
         selected.forEach(function(i) { votes[i] = (votes[i] || 0) + 1; });
         totalVoters++;
         renderResults();
@@ -228,11 +243,10 @@ function poll(data = {}) {
           localStorage.setItem(LS_SELECTIONS_KEY, JSON.stringify(selected));
         } catch(e) {}
 
-        // Send completion via WS (agents listen for this)
+        // Send completion via WS — server handles vote aggregation in Redis
+        // Note: sparkui.saveState removed from vote handler; server-side aggregation prevents race conditions
         if (window.sparkui) {
           sparkui.sendCompletion(payload);
-          // Save aggregated vote state for cross-client sync
-          sparkui.saveState({ votes: votes, totalVoters: totalVoters });
         }
 
         // Visual feedback
@@ -310,6 +324,15 @@ function poll(data = {}) {
               }
             }
           }
+          // Handle server-side poll vote aggregation broadcasts
+          if (msg.type === 'poll_update') {
+            if (msg.votes) votes = msg.votes;
+            if (msg.totalVoters !== undefined) totalVoters = msg.totalVoters;
+            stateLoaded = true;
+            enableVoteBtn();
+            renderResults();
+            if (showResults && (!hideResultsUntilVoted || voted)) resultsSection.style.display = 'block';
+          }
           // Handle state responses (from loadState) and state_sync (from other clients saving)
           if ((msg.type === 'state' || msg.type === 'state_sync') && msg.data) {
             var stateData = msg.data;
@@ -319,6 +342,8 @@ function poll(data = {}) {
               renderResults();
               if (showResults && (!hideResultsUntilVoted || voted)) resultsSection.style.display = 'block';
             }
+            stateLoaded = true;
+            enableVoteBtn();
           }
         });
 
@@ -330,6 +355,8 @@ function poll(data = {}) {
             renderResults();
             if (showResults && (!hideResultsUntilVoted || voted)) resultsSection.style.display = 'block';
           }
+          stateLoaded = true;
+          enableVoteBtn();
         });
       }
 

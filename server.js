@@ -541,14 +541,33 @@ wss.on('connection', (ws, req) => {
         break;
 
       case 'load_state':
-        // Load page state (Redis-backed)
+        // Load page state (Redis-backed), merge poll vote data if present
         if (msgPageId) {
-          loadPageState(msgPageId).then((stateData) => {
-            try { ws.send(JSON.stringify({ type: 'state', pageId: msgPageId, data: stateData })); } catch {}
-          }).catch((err) => {
-            console.error(`[ws] load_state error:`, err.message);
-            try { ws.send(JSON.stringify({ type: 'state', pageId: msgPageId, data: null })); } catch {}
-          });
+          (async () => {
+            try {
+              const stateData = await loadPageState(msgPageId);
+              // Check for server-side poll votes
+              const votesKey = `sparkui:poll:${msgPageId}:votes`;
+              const totalKey = `sparkui:poll:${msgPageId}:total`;
+              const [votesHash, totalStr] = await Promise.all([
+                redisStore.client.hgetall(votesKey),
+                redisStore.client.get(totalKey),
+              ]);
+              let merged = stateData || {};
+              if (votesHash && Object.keys(votesHash).length > 0) {
+                const votesObj = {};
+                for (const [k, v] of Object.entries(votesHash)) {
+                  votesObj[k] = parseInt(v, 10) || 0;
+                }
+                const totalVoters = parseInt(totalStr, 10) || 0;
+                merged = { ...merged, votes: votesObj, totalVoters };
+              }
+              try { ws.send(JSON.stringify({ type: 'state', pageId: msgPageId, data: Object.keys(merged).length > 0 ? merged : stateData })); } catch {}
+            } catch (err) {
+              console.error(`[ws] load_state error:`, err.message);
+              try { ws.send(JSON.stringify({ type: 'state', pageId: msgPageId, data: null })); } catch {}
+            }
+          })();
         }
         break;
 
@@ -562,6 +581,47 @@ wss.on('connection', (ws, req) => {
         console.log(`[ws] Completion from page ${msgPageId}:`, JSON.stringify(msg.data).slice(0, 200));
         analytics.recordCompletion(msgPageId, { type: 'completion', data: msg.data });
         recordAndQueueEvent(msgPageId, 'completion', msg.data);
+
+        // Server-side poll vote aggregation
+        if (msg.data && msg.data.action === 'vote' && Array.isArray(msg.data.selectionIndexes) && msgPageId) {
+          const votesKey = `sparkui:poll:${msgPageId}:votes`;
+          const totalKey = `sparkui:poll:${msgPageId}:total`;
+          (async () => {
+            try {
+              const pipeline = redisStore.client.pipeline();
+              for (const idx of msg.data.selectionIndexes) {
+                pipeline.hincrby(votesKey, String(idx), 1);
+              }
+              pipeline.incrby(totalKey, 1);
+              await pipeline.exec();
+              // Set TTL on first vote (ignore if already set)
+              const ttl = await redisStore.client.ttl(votesKey);
+              if (ttl < 0) {
+                await redisStore.client.expire(votesKey, 31536000);
+                await redisStore.client.expire(totalKey, 31536000);
+              }
+              // Read updated totals and broadcast to all clients
+              const [votesHash, totalStr] = await Promise.all([
+                redisStore.client.hgetall(votesKey),
+                redisStore.client.get(totalKey),
+              ]);
+              const votesObj = {};
+              for (const [k, v] of Object.entries(votesHash || {})) {
+                votesObj[k] = parseInt(v, 10) || 0;
+              }
+              const totalVoters = parseInt(totalStr, 10) || 0;
+              const updateMsg = JSON.stringify({ type: 'poll_update', pageId: msgPageId, votes: votesObj, totalVoters });
+              const clients = pageClients.get(msgPageId);
+              if (clients) {
+                for (const client of clients) {
+                  try { client.send(updateMsg); } catch {}
+                }
+              }
+            } catch (err) {
+              console.error(`[ws] poll vote aggregation error:`, err.message);
+            }
+          })();
+        }
         break;
 
       default:
