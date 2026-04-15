@@ -26,6 +26,30 @@ SparkUI lets AI agents generate interactive web UIs on demand. The agent pushes 
 - 📡 **Agent push** — send toasts, update content, and reload pages from the server side
 - 🎨 **Auto icons** — emoji in templates automatically replaced with crisp Lucide SVG icons
 
+## Free Tier
+
+Use SparkUI from any AI assistant — no plugin, no credit card.
+
+| | |
+|---|---|
+| **Register** | `POST /api/tokens/register` — returns a `spkf_` token |
+| **Check usage** | `GET /api/tokens/me` — see remaining quota |
+| **Rate limits** | 20 pages/day, 1-hour TTL, all 11 templates |
+| **Get a token** | [sparkui.dev/get-token](https://sparkui.dev/get-token) |
+| **Playground** | [sparkui.dev/try](https://sparkui.dev/try) |
+
+```bash
+# Register for a free token
+curl -s -X POST https://sparkui.dev/api/tokens/register \
+  -H "Content-Type: application/json" -d '{}' | jq .token
+
+# Push a page with your token
+curl -X POST https://sparkui.dev/api/push \
+  -H "Authorization: Bearer spkf_YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"template":"poll","data":{"question":"Favorite?","options":["A","B","C"]}}'
+```
+
 ## Quick Start
 
 ```bash

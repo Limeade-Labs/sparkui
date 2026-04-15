@@ -1411,6 +1411,132 @@ copyBtn.addEventListener('click',()=>{navigator.clipboard.writeText(tokenVal.tex
 </html>`);
 });
 
+// ── /try Playground ─────────────────────────────────────────────────────────
+
+app.get('/try', (req, res) => {
+  res.set('Content-Type', 'text/html').send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Try SparkUI — Playground</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--surface:#1e293b;--green:#22c55e;--text:#e2e8f0;--text-dim:#94a3b8;--border:#334155}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;padding:24px}
+a{color:var(--green);text-decoration:none}
+a:hover{color:#4ade80}
+.top-bar{display:flex;align-items:center;justify-content:space-between;max-width:900px;margin:0 auto 24px;flex-wrap:wrap;gap:12px}
+.top-bar h1{font-size:1.4rem;font-weight:800;color:#f8fafc}
+.top-bar h1 em{font-style:normal;color:var(--green)}
+.top-bar a{font-size:.85rem}
+.card{max-width:900px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+label{display:block;font-size:.82rem;color:var(--text-dim);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+select,textarea{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'SF Mono',Monaco,Consolas,monospace;font-size:.85rem;outline:none;resize:vertical}
+select:focus,textarea:focus{border-color:var(--green)}
+textarea{min-height:180px;line-height:1.5}
+.row{display:flex;gap:16px;margin-bottom:16px;align-items:flex-end}
+.row .field{flex:1}
+@media(max-width:600px){.row{flex-direction:column;align-items:stretch} .row .field{width:100%}}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border:none;border-radius:8px;background:var(--green);color:#0f172a;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .2s}
+.btn:hover{background:#16a34a}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.result{display:none;margin-top:20px;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:8px}
+.result-url{font-family:'SF Mono',Monaco,Consolas,monospace;font-size:.85rem;word-break:break-all;margin-bottom:12px}
+.result-url a{color:var(--green)}
+.preview{width:100%;border:1px solid var(--border);border-radius:8px;min-height:400px;background:#fff}
+.error{color:#ef4444;margin-top:12px;font-size:.88rem;display:none}
+.field{margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <h1>&#9889; <em>SparkUI</em> Playground</h1>
+  <div><a href="/">&larr; Home</a> &middot; <a href="/get-token">Get free token</a></div>
+</div>
+<div class="card">
+  <div class="row">
+    <div class="field">
+      <label for="tpl">Template</label>
+      <select id="tpl"></select>
+    </div>
+    <div style="padding-bottom:16px">
+      <button class="btn" id="gen-btn" onclick="generate()">Generate</button>
+    </div>
+  </div>
+  <div class="field">
+    <label for="data">Data (JSON)</label>
+    <textarea id="data" spellcheck="false"></textarea>
+  </div>
+  <div class="error" id="error"></div>
+  <div class="result" id="result">
+    <div class="result-url" id="result-url"></div>
+    <iframe class="preview" id="preview" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+  </div>
+</div>
+<script>
+const TEMPLATES = {
+  "poll": ${JSON.stringify({"question":"What is your favorite SparkUI feature?","options":["Fast deploys","Rich UI","No-code","WebSocket updates"]})},
+  "macro-tracker": ${JSON.stringify({"calories":{"current":1840,"goal":2200},"protein":{"current":142,"goal":180},"carbs":{"current":180,"goal":250},"fat":{"current":58,"goal":70}})},
+  "feedback-form": ${JSON.stringify({"title":"Quick Feedback","fields":[{"name":"rating","label":"Rating","type":"select","options":["Excellent","Good","Fair","Poor"]},{"name":"comment","label":"Comments","type":"textarea"}]})},
+  "checkout": ${JSON.stringify({"title":"SparkUI Pro","description":"Unlimited pages, custom domains","price":9.99,"currency":"USD","items":[{"name":"Monthly subscription","price":9.99}]})},
+  "workout-timer": ${JSON.stringify({"title":"HIIT Session","rounds":4,"workSeconds":40,"restSeconds":20,"exercises":["Burpees","Mountain Climbers","Jump Squats","Push-ups"]})},
+  "shopping-list": ${JSON.stringify({"title":"Grocery Run","items":[{"name":"Avocados","qty":3,"checked":false},{"name":"Greek yogurt","qty":2,"checked":false},{"name":"Spinach","qty":1,"checked":true}]})},
+  "calendar": ${JSON.stringify({"title":"April 2026","events":[{"date":"2026-04-15","title":"SparkUI launch"},{"date":"2026-04-20","title":"Team sync"}]})},
+  "approval-flow": ${JSON.stringify({"title":"Approve Deploy","description":"SparkUI v1.6 free tier + playground","items":["New /try playground","Landing page CTA","Free token docs"],"approver":"Ryan"})},
+  "comparison": ${JSON.stringify({"title":"SparkUI Plans","items":[{"name":"Free","price":"$0","features":["20 pages/day","1hr TTL","All templates"]},{"name":"Pro","price":"$9/mo","features":["Unlimited pages","Custom TTL","Priority support"]}]})},
+  "analytics-dashboard": ${JSON.stringify({"title":"SparkUI Stats","metrics":[{"label":"Pages Today","value":142},{"label":"Active Users","value":38},{"label":"Avg TTL","value":"45min"}]})},
+  "ws-test": ${JSON.stringify({"title":"WebSocket Test","message":"Hello from SparkUI!"})}
+};
+const sel = document.getElementById('tpl');
+const dataEl = document.getElementById('data');
+const errEl = document.getElementById('error');
+const resultEl = document.getElementById('result');
+const urlEl = document.getElementById('result-url');
+const preview = document.getElementById('preview');
+const btn = document.getElementById('gen-btn');
+
+Object.keys(TEMPLATES).forEach(t => {
+  const o = document.createElement('option');
+  o.value = t; o.textContent = t;
+  sel.appendChild(o);
+});
+sel.addEventListener('change', () => {
+  dataEl.value = JSON.stringify(TEMPLATES[sel.value], null, 2);
+});
+sel.dispatchEvent(new Event('change'));
+
+async function generate() {
+  errEl.style.display = 'none';
+  resultEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  try {
+    let data;
+    try { data = JSON.parse(dataEl.value); } catch(e) { throw new Error('Invalid JSON: ' + e.message); }
+    const r = await fetch('/api/demo/' + sel.value, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Request failed');
+    const fullUrl = d.fullUrl || (location.origin + d.url);
+    urlEl.innerHTML = '&#9889; <a href="' + fullUrl + '" target="_blank">' + fullUrl + '</a> (opens in new tab)';
+    preview.src = d.url;
+    resultEl.style.display = 'block';
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Generate';
+}
+</script>
+</body>
+</html>`);
+});
+
 // ── Compose API ──────────────────────────────────────────────────────────────
 
 app.post('/api/compose', requireAuth, freeRateLimit, async (req, res) => {

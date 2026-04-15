@@ -430,8 +430,9 @@ footer{
       <span class="badge">📦 npm ready</span>
     </div>
     <div class="cta-group">
-      <a href="https://github.com/limeade-labs/sparkui" class="btn btn-primary" target="_blank">Get Started</a>
-      <a href="#demos" class="btn btn-secondary">Try a Demo ↓</a>
+      <a href="/try" class="btn btn-primary">Try it now</a>
+      <a href="https://github.com/limeade-labs/sparkui" class="btn btn-secondary" target="_blank">Get Started</a>
+      <a href="#demos" class="btn btn-secondary">Demos ↓</a>
     </div>
     <div class="install-snippet" onclick="navigator.clipboard.writeText('npm install @limeade-labs/sparkui');this.querySelector('.copy-hint').textContent='Copied!'">
       <code>npm install @limeade-labs/sparkui</code>
@@ -1113,6 +1114,38 @@ ws.<span class="fn">on</span>(<span class="str">'message'</span>, (data) => <spa
     </div>
   </div>
 </section>
+
+<!-- FREE TIER -->
+<section class="free-tier" id="free-tier">
+  <div class="container">
+    <div class="section-label">Free Tier</div>
+    <h2 class="section-title">Start building for free</h2>
+    <p class="section-subtitle">20 pages per day. No credit card. All 11 templates. Get a token and start pushing pages in seconds.</p>
+    <div class="free-tier-grid">
+      <div class="free-tier-card fade-in">
+        <h3>&#9889; Get a Token</h3>
+        <p>Visit <a href="/get-token">/get-token</a> to register for a free <code>spkf_</code> token instantly. No sign-up required.</p>
+        <a href="/get-token" class="btn btn-primary" style="margin-top:16px;display:inline-block;text-decoration:none">Get Free Token</a>
+      </div>
+      <div class="free-tier-card fade-in d1">
+        <h3>&#128640; Push a Page</h3>
+        <p>Use your token with curl or any HTTP client:</p>
+        <pre style="background:var(--bg);border:1px solid var(--border,#334155);border-radius:8px;padding:12px;margin-top:12px;font-size:.78rem;line-height:1.6;overflow-x:auto;color:#c4b5fd"><code>curl -X POST https://sparkui.dev/api/push \
+  -H "Authorization: Bearer spkf_YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"template":"poll","data":{"question":"Favorite feature?","options":["Fast","Rich UI","Free"]}}'</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+.free-tier-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px}
+.free-tier-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:28px}
+.free-tier-card h3{font-size:1.15rem;color:var(--text-bright,#f8fafc);margin-bottom:10px}
+.free-tier-card p{color:var(--text-dim);font-size:.92rem;line-height:1.6}
+.free-tier-card code{background:var(--bg);padding:2px 6px;border-radius:4px;font-size:.82rem;color:var(--green)}
+@media(max-width:700px){.free-tier-grid{grid-template-columns:1fr}}
+</style>
 
 <!-- FOOTER -->
 <footer>
