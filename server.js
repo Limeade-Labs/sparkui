@@ -115,6 +115,10 @@ try {
 // ── App ──────────────────────────────────────────────────────────────────────
 
 const app = express();
+
+// Trust the first proxy (Kamal / nginx) so req.ip reflects the real client IP
+app.set('trust proxy', 1);
+
 const server = http.createServer(app);
 const store = new PageStore();
 const analytics = new AnalyticsStore();
@@ -797,7 +801,7 @@ app.post('/api/demo/:template', async (req, res) => {
     }
 
     // Rate limit by IP
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = req.ip || req.socket.remoteAddress;
     const now = Date.now();
     let entry = demoRateMap.get(ip);
     if (!entry || now > entry.resetAt) {
@@ -954,7 +958,7 @@ app.post('/api/tokens/register', async (req, res) => {
   }
 
   // IP rate limit
-  const ip = req.ip || req.connection.remoteAddress;
+  const ip = req.ip || req.socket.remoteAddress;
   const now = Date.now();
   let entry = tokenRegRateMap.get(ip);
   if (!entry || now > entry.resetAt) {
