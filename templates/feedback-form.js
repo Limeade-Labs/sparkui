@@ -35,7 +35,10 @@ function feedbackForm(data = {}) {
     </div>
 
     <!-- Response count -->
-    <div id="response-count" style="text-align:center;margin-bottom:16px;color:#666;font-size:0.85rem"></div>
+    <div id="response-count" style="text-align:center;margin-bottom:8px;color:#666;font-size:0.85rem"></div>
+
+    <!-- Multi-respondent hint -->
+    <p style="text-align:center;margin-bottom:16px;color:#555;font-size:0.75rem">Each browser can submit independently — share this link to collect more responses.</p>
 
     <form id="feedback-form" style="background:#1a1a1a;padding:20px;border-radius:12px;border:1px solid #222">
       <!-- Name (optional) -->

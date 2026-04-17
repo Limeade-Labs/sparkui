@@ -82,8 +82,8 @@ function poll(data = {}) {
 
     <!-- Already voted notice -->
     <div id="already-voted-notice" style="display:none;text-align:center;margin-top:20px;padding:16px;background:#1a2e1a;border:1px solid #2d5a2d;border-radius:10px">
-      <p style="color:#66bb6a;font-size:0.95rem;font-weight:500;margin-bottom:4px">You have already voted</p>
-      <p style="color:#888;font-size:0.8rem">Your selection is highlighted below</p>
+      <p style="color:#66bb6a;font-size:0.95rem;font-weight:500;margin-bottom:4px">You already voted</p>
+      <p style="color:#888;font-size:0.8rem">Your selection is highlighted above</p>
     </div>
 
     <!-- Footer -->
