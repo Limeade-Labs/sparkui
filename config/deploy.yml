@@ -32,16 +32,21 @@ env:
     SPARKUI_PORT: 3457
     SPARKUI_BASE_URL: https://sparkui.dev
     OPENCLAW_HOOKS_URL: http://127.0.0.1:18789/hooks/agent
-    REDIS_URL: redis://sparkui-redis:6379/0
   secret:
     - PUSH_TOKEN
     - OPENCLAW_HOOKS_TOKEN
+    - REDIS_URL
 
 accessories:
   redis:
     image: redis:7-alpine
     host: 157.245.14.0
-    port: 6379
+    # No `port:` on purpose. Publishing 6379 exposed Redis to the internet
+    # (Docker bypasses ufw) and it was hijacked. The app reaches it over the
+    # kamal network as sparkui-redis.
     volumes:
-      - sparkui-redis-data:/data
-    cmd: redis-server --appendonly yes
+      - sparkui-redis-data-v2:/data
+    env:
+      secret:
+        - REDIS_PASSWORD
+    cmd: sh -c 'exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"'
